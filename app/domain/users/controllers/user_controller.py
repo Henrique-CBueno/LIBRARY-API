@@ -1,10 +1,12 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.config.security.dependencies import get_current_user
 from app.domain.users.repositories.user_repository import UserRepository
-from app.domain.users.schemas.user_schema import UserResponseSchema, CreateUserSchema
+from app.domain.users.schemas.user_schema import UserResponseSchema, CreateUserSchema, TokenResponseSchema, LoginSchema, UpdateUserSchema
 from app.domain.users.services.user_service import UserService
 from app.infra.database.session import get_db
+from app.infra.padronize.pagination.schemas import PaginatedResponse
 
 router = APIRouter(
     prefix="/users",
@@ -34,9 +36,70 @@ async def create_user(
 
 @router.get(
     "",
-    response_model=list[UserResponseSchema],
+    response_model=PaginatedResponse[UserResponseSchema],
 )
 async def list_users(
+    page: int = Query(1, ge=1),
+    size: int = Query(10, ge=1, le=100),
     service: UserService = Depends(get_user_service),
 ):
-    return await service.list_users()
+    return await service.list_users_paginated(
+        page,
+        size,
+    )
+
+@router.post(
+    "/login",
+    response_model=TokenResponseSchema,
+)
+async def login(
+    data: LoginSchema,
+    service: UserService = Depends(get_user_service),
+):
+    return await service.login(data)
+
+
+@router.get(
+    "/me",
+    response_model=UserResponseSchema,
+)
+async def me(
+    current_user = Depends(get_current_user),
+):
+    return current_user
+
+
+@router.get(
+    "/{user_id}",
+    response_model=UserResponseSchema,
+)
+async def get_user(
+    user_id: str,
+    service: UserService = Depends(get_user_service),
+):
+    return await service.get_by_id(user_id)
+
+
+@router.put(
+    "/{user_id}",
+    response_model=UserResponseSchema,
+)
+async def update_user(
+    user_id: str,
+    data: UpdateUserSchema,
+    service: UserService = Depends(get_user_service),
+):
+    return await service.update_user(
+        user_id,
+        data,
+    )
+
+@router.delete(
+    "/{user_id}",
+    status_code=204,
+)
+async def delete_user(
+    user_id: str,
+    service: UserService = Depends(get_user_service),
+):
+    await service.delete_user(user_id)

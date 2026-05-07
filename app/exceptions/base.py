@@ -8,3 +8,7 @@ class BusinessRuleException(DomainException):
 
 class NotFoundException(DomainException):
     pass
+
+
+class UnauthorizedException(DomainException):
+    pass

@@ -1,7 +1,7 @@
 from fastapi import Request
 from fastapi.responses import JSONResponse
 
-from app.exceptions.base import BusinessRuleException, NotFoundException
+from app.exceptions.base import BusinessRuleException, NotFoundException, UnauthorizedException
 
 
 async def business_exception_handler(
@@ -28,6 +28,21 @@ async def not_found_exception_handler(
         content={
             "error": {
                 "code": "NOT_FOUND",
+                "message": str(exc),
+            }
+        },
+    )
+
+
+async def unauthorized_exception_handler(
+    request: Request,
+    exc: UnauthorizedException,
+):
+    return JSONResponse(
+        status_code=401,
+        content={
+            "error": {
+                "code": "UNAUTHORIZED",
                 "message": str(exc),
             }
         },

@@ -19,3 +19,14 @@ class UserResponseSchema(BaseModel):
     model_config = {
         "from_attributes": True
     }
+
+class UpdateUserSchema(BaseModel):
+    name: str | None = None
+
+class LoginSchema(BaseModel):
+    email: EmailStr
+    password: str
+
+class TokenResponseSchema(BaseModel):
+    access_token: str
+    token_type: str = "bearer"
