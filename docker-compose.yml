@@ -1,0 +1,42 @@
+services:
+  api:
+    build:
+      context: .
+      dockerfile: docker/api/Dockerfile
+
+    container_name: library-api
+
+    ports:
+      - "8000:8000"
+
+    volumes:
+      - .:/app
+      - /app/.venv
+
+    env_file:
+      - .env
+
+    depends_on:
+      - postgres
+      - redis
+
+  postgres:
+    image: postgres:16
+
+    container_name: library-postgres
+
+    environment:
+      POSTGRES_DB: library
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: admin
+
+    ports:
+      - "5432:5432"
+
+  redis:
+    image: redis:7
+
+    container_name: library-redis
+
+    ports:
+      - "6379:6379"
