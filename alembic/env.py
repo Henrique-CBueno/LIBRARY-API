@@ -12,6 +12,7 @@ from app.domain.books.models import book_model  # noqa: F401
 from app.domain.authors.models import author_model  # noqa: F401
 from app.domain.loans.models import loan_model  # noqa: F401
 from app.domain.notifications.models import notification_model  # noqa: F401
+from app.domain.reservation.models import reservation_model  # noqa: F401
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
