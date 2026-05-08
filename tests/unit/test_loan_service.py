@@ -20,6 +20,7 @@ def make_service():
     cache_service = AsyncMock()
     cache_service.get.return_value = None
     fine_calculator = FineCalculator()
+    event_bus = AsyncMock()
 
     return (
         LoanService(
@@ -27,6 +28,7 @@ def make_service():
             user_repository=user_repository,
             cache_service=cache_service,
             fine_calculator=fine_calculator,
+            event_bus=event_bus,
         ),
         repository,
         user_repository,
