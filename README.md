@@ -40,7 +40,11 @@ Este sistema foi desenvolvido para atender o desafio de uma biblioteca digital, 
 
 **Cache com Redis**
 - Redis armazena resultados de consultas frequentes, reduzindo carga de banco.
-- O cache eh invalidado em operacoes de escrita relevantes.
+- O cache é invalidado em operacoes de escrita relevantes.
+
+**Versionamento do banco com Alembic**
+- Migracoes versionadas garantem evolucao controlada do schema.
+- O container da API executa `alembic upgrade head` no startup.
 
 ## Stack e tecnologias
 
@@ -112,7 +116,7 @@ docs/
 
 ### Print do Swagger
 
-![Swagger UI](docs/assets/swagger-ui.svg)
+![Swagger UI](docs/assets/swagger-ui.svg.png)
 
 ## Postman
 
@@ -163,6 +167,7 @@ Variaveis no .env:
 ## Testes
 
 Os testes usam um Postgres de teste na porta 5433 (service `postgres_test`).
+O arquivo .env.test ja esta configurado para o ambiente de testes.
 
 1. Suba apenas o banco de teste:
 
