@@ -26,23 +26,28 @@ Este sistema foi desenvolvido para atender o desafio de uma biblioteca digital, 
 ## Decisoes arquiteturais
 
 **Monolito modular em camadas**
+
 - Mantem deploy simples e rapido, com transacoes consistentes e baixa friccao operacional.
 - Organizacao modular por dominios (users, authors, books, loans, reservations, notifications, reports), permitindo evoluir para microservicos no futuro.
 - Separacao em camadas (controllers -> services -> repositories), reduzindo acoplamento e facilitando testes.
 
 **Bus de eventos local**
+
 - Um Event Bus in-process permite desacoplar o fluxo principal de efeitos colaterais (ex: notificacoes).
 - O design prepara a migracao futura para fila externa (Kafka/RabbitMQ) sem reescrita ampla das regras de negocio.
 
 **Cron jobs e tarefas assincronas**
+
 - APScheduler executa jobs de notificacoes de vencimento em horarios definidos (ex: 08:00).
 - O job analisa emprestimos a vencer e gera notificacoes automaticas.
 
 **Cache com Redis**
+
 - Redis armazena resultados de consultas frequentes, reduzindo carga de banco.
 - O cache é invalidado em operacoes de escrita relevantes.
 
 **Versionamento do banco com Alembic**
+
 - Migracoes versionadas garantem evolucao controlada do schema.
 - O container da API executa `alembic upgrade head` no startup.
 
@@ -62,14 +67,28 @@ Este sistema foi desenvolvido para atender o desafio de uma biblioteca digital, 
 ## Estrutura do projeto
 
 ```
-app/
-	config/          # settings, seguranca e observabilidade
-	domain/          # dominios (controllers, services, repositories, models, schemas)
-	events/          # eventos e handlers
-	infra/           # database, middlewares e observabilidade
-	schedule/        # scheduler e jobs
-docs/
-	endpoints.md     # lista de endpoints e acesso
+API-LIVRARIA/
+|-- app/
+|   |-- config/          # settings, seguranca e observabilidade
+|   |-- domain/          # dominios da aplicacao
+|   |   |-- authors/
+|   |   |-- books/
+|   |   |-- loans/
+|   |   |-- notifications/
+|   |   |-- reports/
+|   |   |-- reservation/
+|   |   `-- users/
+|   |-- events/          # eventos e handlers
+|   |-- infra/           # database, middlewares e utilitarios
+|   |-- schedule/        # jobs agendados
+|   `-- main.py          # entrada da aplicacao FastAPI
+|-- alembic/             # migracoes do banco
+|-- docker/              # Dockerfile e configs auxiliares
+|-- docs/                # documentacao da API
+|-- tests/               # testes unitarios e de integracao
+|-- docker-compose.yml
+|-- pyproject.toml
+`-- README.md
 ```
 
 ## Regras de negocio
@@ -83,17 +102,20 @@ docs/
 ## Requisitos do case e cobertura
 
 **Entidades obrigatorias**
+
 - Usuario: implementado com autenticacao via JWT
 - Livro: implementado com disponibilidade e autor vinculado
 - Emprestimo: implementado com ciclo completo e multa
 
 **Funcionalidades principais**
+
 - Gestao de usuarios (CRUD admin + login + perfil)
 - Catalogo de livros e autores com paginacao e filtros
 - Emprestimos com devolucao, multa, renovacao e cancelamento
 - Historico de emprestimos por usuario
 
 **Extras implementados**
+
 - Paginacao em listagens
 - Documentacao automatica (Swagger/OpenAPI)
 - Validacao robusta com Pydantic
@@ -114,6 +136,62 @@ docs/
 - OpenAPI JSON: http://localhost:8000/openapi.json
 - Endpoints detalhados: [docs/endpoints.md](docs/endpoints.md)
 
+### Endpoints de exemplo
+
+Criar usuario:
+
+```bash
+curl -X POST http://localhost:8000/users \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "Usuario Exemplo",
+    "email": "usuario@email.com",
+    "password": "123456"
+  }'
+```
+
+Login:
+
+```bash
+curl -X POST http://localhost:8000/users/login \
+  -H "Content-Type: application/json" \
+  -d '{
+    "email": "usuario@email.com",
+    "password": "123456"
+  }'
+```
+
+Consultar perfil do usuario autenticado:
+
+```bash
+curl http://localhost:8000/users/me \
+  -H "Authorization: Bearer SEU_TOKEN"
+```
+
+Listar livros:
+
+```bash
+curl "http://localhost:8000/books?page=1&size=10"
+```
+
+Criar emprestimo:
+
+```bash
+curl -X POST http://localhost:8000/loans \
+  -H "Authorization: Bearer SEU_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "user_id": "ID_DO_USUARIO",
+    "book_id": "ID_DO_LIVRO"
+  }'
+```
+
+Verificar saude da API:
+
+```bash
+curl http://localhost:8000/health
+```
+
 ### Print do Swagger
 
 ![Swagger UI](docs/assets/swagger-ui.svg.png)
@@ -122,9 +200,9 @@ docs/
 
 - Colecao: [docs/postman/api-livraria.postman_collection.json](docs/postman/api-livraria.postman_collection.json)
 - Variaveis sugeridas:
-	- `base_url`: http://localhost:8000
-	- `admin_token`: JWT de admin
-	- `user_token`: JWT de usuario comum
+  - `base_url`: http://localhost:8000
+  - `admin_token`: JWT de admin
+  - `user_token`: JWT de usuario comum
 
 ## Observabilidade
 
@@ -137,6 +215,7 @@ docs/
 ## Como rodar com Docker Compose
 
 Pre-requisitos:
+
 - Docker e Docker Compose
 
 Subir a stack:
@@ -146,6 +225,7 @@ docker compose up --build
 ```
 
 Servicos principais:
+
 - API: http://localhost:8000
 - Postgres: localhost:5432
 - Redis: localhost:6379
@@ -156,13 +236,13 @@ Observacao: as migracoes sao executadas automaticamente no startup do container 
 
 Variaveis no .env:
 
-| Variavel | Descricao | Exemplo |
-| --- | --- | --- |
-| DATABASE_URL | URL do Postgres | postgresql+asyncpg://admin:admin@postgres:5432/library |
-| REDIS_URL | URL do Redis | redis://redis:6379 |
-| JWT_SECRET | Segredo do JWT | supersecret |
-| JWT_EXPIRE_MINUTES | Expiracao do token | 60 |
-| ENVIRONMENT | Ambiente | development |
+| Variavel           | Descricao          | Exemplo                                                |
+| ------------------ | ------------------ | ------------------------------------------------------ |
+| DATABASE_URL       | URL do Postgres    | postgresql+asyncpg://admin:admin@postgres:5432/library |
+| REDIS_URL          | URL do Redis       | redis://redis:6379                                     |
+| JWT_SECRET         | Segredo do JWT     | supersecret                                            |
+| JWT_EXPIRE_MINUTES | Expiracao do token | 60                                                     |
+| ENVIRONMENT        | Ambiente           | development                                            |
 
 ## Testes
 
