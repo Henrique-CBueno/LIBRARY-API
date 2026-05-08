@@ -11,7 +11,7 @@ from app.domain.loans.schemas.loan_schema import (
     LoanResponseSchema,
     PayLoanFineResponseSchema,
     ReturnLoanResponseSchema,
-    UpdateLoanSchema,
+    UpdateLoanSchema, RenewLoanResponseSchema,
 )
 from app.domain.loans.services.fine_calculator import FineCalculator
 from app.domain.loans.services.loan_service import LoanService
@@ -188,4 +188,15 @@ async def return_loan(
     service: LoanService = Depends(get_loan_service),
 ):
     return await service.return_loan(loan_id)
+
+@router.post(
+    "/{loan_id}/renew",
+    response_model=RenewLoanResponseSchema,
+    summary="Renew loan",
+)
+async def renew_loan(
+    loan_id: str,
+    service: LoanService = Depends(get_loan_service),
+):
+    return await service.renew_loan(loan_id)
 

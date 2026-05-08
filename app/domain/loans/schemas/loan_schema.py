@@ -58,3 +58,9 @@ class PayLoanFineResponseSchema(BaseModel):
     payment_amount: float
     fine_paid_amount: float
     fine_paid_at: datetime
+
+class RenewLoanResponseSchema(BaseModel):
+    id: str
+    status: LoanStatus
+    due_date: datetime
+    renewal_count: int

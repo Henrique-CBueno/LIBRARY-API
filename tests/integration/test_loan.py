@@ -706,3 +706,100 @@ async def test_should_not_return_when_paid_fine_is_less_than_current_fine(
         body["error"]["message"]
         == "Loan fine must be paid before returning the book"
     )
+
+async def test_should_renew_loan(client):
+    loan = await create_loan(client)
+
+    old_due_date = loan["due_date"]
+
+    response = await client.post(
+        f"/loans/{loan['id']}/renew",
+    )
+
+    assert response.status_code == 200
+
+    body = response.json()
+
+    assert body["id"] == loan["id"]
+    assert body["status"] == "ACTIVE"
+    assert body["renewal_count"] == 1
+    assert body["due_date"] != old_due_date
+
+async def test_should_not_renew_returned_loan(client):
+    loan = await create_loan(client)
+
+    await client.post(
+        f"/loans/{loan['id']}/return",
+    )
+
+    response = await client.post(
+        f"/loans/{loan['id']}/renew",
+    )
+
+    assert response.status_code == 404
+
+async def test_should_not_renew_overdue_loan(
+    client,
+    db_session,
+):
+
+
+    loan = await create_loan(client)
+
+    result = await db_session.execute(
+        select(LoanModel).where(
+            LoanModel.id == loan["id"]
+        )
+    )
+
+    loan_model = result.scalar_one()
+
+    loan_model.due_date = (
+        datetime.utcnow()
+        - timedelta(days=1)
+    )
+
+    await db_session.commit()
+
+    response = await client.post(
+        f"/loans/{loan['id']}/renew",
+    )
+
+    assert response.status_code == 400
+
+    body = response.json()
+
+    assert (
+        body["error"]["message"]
+        == "Overdue loans cannot be renewed"
+    )
+
+async def test_should_not_renew_more_than_maximum_allowed(
+    client,
+):
+    loan = await create_loan(client)
+
+    first_response = await client.post(
+        f"/loans/{loan['id']}/renew",
+    )
+
+    assert first_response.status_code == 200
+
+    second_response = await client.post(
+        f"/loans/{loan['id']}/renew",
+    )
+
+    assert second_response.status_code == 200
+
+    third_response = await client.post(
+        f"/loans/{loan['id']}/renew",
+    )
+
+    assert third_response.status_code == 400
+
+    body = third_response.json()
+
+    assert (
+        body["error"]["message"]
+        == "Loan has reached the maximum number of renewals"
+    )

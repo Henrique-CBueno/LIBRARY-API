@@ -23,6 +23,8 @@ class LoanService:
     LOAN_DAYS = 14
     MAX_ACTIVE_LOANS = 3
     CACHE_TTL_SECONDS = 30
+    RENEWAL_DAYS = 7
+    MAX_RENEWALS = 2
 
     def __init__(
         self,
@@ -612,3 +614,53 @@ class LoanService:
         await self.cache_service.delete_pattern(
             f"loans:user:{user_id}:*"
         )
+
+    async def renew_loan(
+            self,
+            loan_id: str,
+    ):
+        loan = await self.repository.find_active_by_id_for_update(
+            loan_id,
+        )
+
+        if not loan:
+            raise NotFoundException(
+                "Active loan not found"
+            )
+
+        days_late = self.fine_calculator.calculate_days_late(
+            loan.due_date,
+        )
+
+        if days_late > 0:
+            raise BusinessRuleException(
+                "Overdue loans cannot be renewed"
+            )
+
+        if loan.renewal_count >= self.MAX_RENEWALS:
+            raise BusinessRuleException(
+                "Loan has reached the maximum number of renewals"
+            )
+
+        loan.due_date = loan.due_date + timedelta(
+            days=self.RENEWAL_DAYS,
+        )
+
+        loan.renewal_count += 1
+
+        await self.repository.db.commit()
+        await self.repository.db.refresh(loan)
+
+        logger.info(
+            "loan_renewed",
+            loan_id=str(loan.id),
+            due_date=loan.due_date.isoformat(),
+            renewal_count=loan.renewal_count,
+        )
+
+        return {
+            "id": str(loan.id),
+            "status": loan.status,
+            "due_date": loan.due_date,
+            "renewal_count": loan.renewal_count,
+        }
