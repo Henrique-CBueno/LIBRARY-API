@@ -2,6 +2,7 @@ from datetime import datetime
 
 import structlog
 
+from app.config.observability.metrics import notifications_sent_total
 from app.domain.notifications.models.notification_model import NotificationModel, NotificationStatus, NotificationType
 from app.domain.notifications.repositories.notification_repository import NotificationRepository
 
@@ -44,6 +45,8 @@ class NotificationService:
             reservation_id=str(reservation_id) if reservation_id else None,
             type=notification_type,
         )
+
+        notifications_sent_total.inc()
 
         return created
 

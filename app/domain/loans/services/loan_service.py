@@ -3,6 +3,8 @@ from datetime import datetime, timedelta
 import structlog
 
 from app.cache.redis_service import CacheService
+from app.config.observability.metrics import loans_created_total, loans_returned_total, loans_cancelled_total, \
+    loans_renewed_total
 from app.domain.loans.models.loan_model import LoanModel, LoanStatus
 from app.domain.loans.repositories.loan_repository import LoanRepository
 from app.domain.loans.schemas.loan_schema import CreateLoanSchema, UpdateLoanSchema
@@ -173,6 +175,8 @@ class LoanService:
             )
         )
 
+        loans_created_total.inc()
+
         return self._serialize_loan(created_loan)
 
     async def get_loan(
@@ -287,6 +291,8 @@ class LoanService:
                 book_id=loan.book_id,
             )
         )
+
+        loans_returned_total.inc()
 
         return {
             "id": str(loan.id),
@@ -597,6 +603,8 @@ class LoanService:
             )
         )
 
+        loans_cancelled_total.inc()
+
         return {
             "id": str(loan.id),
             "status": loan.status,
@@ -671,6 +679,8 @@ class LoanService:
             due_date=loan.due_date.isoformat(),
             renewal_count=loan.renewal_count,
         )
+
+        loans_renewed_total.inc()
 
         return {
             "id": str(loan.id),

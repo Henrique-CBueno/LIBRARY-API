@@ -2,6 +2,7 @@ from datetime import datetime
 
 import structlog
 
+from app.config.observability.metrics import reservations_created_total, reservations_cancelled_total
 from app.domain.books.repositories.book_repository import BookRepository
 from app.domain.reservation.models.reservation_model import ReservationModel, ReservationStatus
 from app.domain.reservation.repositories.reservation_repository import ReservationRepository
@@ -80,6 +81,8 @@ class ReservationService:
             )
         )
 
+        reservations_created_total.inc()
+
         return created
 
     async def cancel_reservation(self, reservation_id: str):
@@ -111,6 +114,8 @@ class ReservationService:
                 book_id=updated.book_id,
             )
         )
+
+        reservations_cancelled_total.inc()
 
         return {
             "id": str(updated.id),

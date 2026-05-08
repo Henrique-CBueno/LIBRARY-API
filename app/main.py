@@ -1,8 +1,12 @@
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
+from fastapi.params import Depends
 from prometheus_fastapi_instrumentator import Instrumentator
+from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.config.observability.health import check_postgres, check_redis
+from app.infra.database.session import get_db
 from app.infra.middleware.logging import LoggingMiddleware
 from app.infra.middleware.request_id import RequestIDMiddleware
 from app.infra.observability.logging import setup_logging
@@ -68,6 +72,19 @@ async def root():
     return {"message": "API running"}
 
 
-@app.get("/health")
-async def health():
-    return {"status": "healthy"}
+@app.get("/health", tags=["Observability"])
+async def health(
+    db: AsyncSession = Depends(get_db),
+):
+    postgres_ok = await check_postgres(db)
+    redis_ok = await check_redis()
+
+    is_healthy = postgres_ok and redis_ok
+
+    return {
+        "status": "healthy" if is_healthy else "unhealthy",
+        "services": {
+            "postgres": "healthy" if postgres_ok else "unhealthy",
+            "redis": "healthy" if redis_ok else "unhealthy",
+        },
+    }
