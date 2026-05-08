@@ -198,7 +198,7 @@ curl http://localhost:8000/health
 
 ## Postman
 
-- Colecao: [docs/postman/api-livraria.postman_collection.json](docs/postman/api-livraria.postman_collection.json)
+- Colecao: [docs/postman/api-livraria.postman_collection.json](docs/postman/api-livraria.postman-collection.json)
 - Variaveis sugeridas:
   - `base_url`: http://localhost:8000
   - `admin_token`: JWT de admin
@@ -263,10 +263,10 @@ uv run pytest
 
 ## Roadmap
 
-- Extrair o Event Bus local para um broker (Kafka/RabbitMQ)
-- Melhorar jobs com fila e retentativa
-- Adicionar front-end web
-- Colecoes adicionais (Insomnia)
+- Evoluir o Event Bus interno para broker externo caso o volume justifique
+- Adicionar envio real de e-mail/webhook
+- Adicionar front-end administrativo
+- Versionar dashboards do Grafana
 
 ## Contato
 
