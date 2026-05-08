@@ -16,6 +16,8 @@ from app.exceptions.handlers import (
 )
 
 from app.domain.users.controllers.user_controller import router as user_router
+from app.domain.books.controllers.book_controller import router as book_router
+from app.domain.authors.controllers.author_controller import router as author_router
 
 setup_logging()
 
@@ -38,6 +40,8 @@ app.add_exception_handler(
 )
 
 app.include_router(user_router)
+app.include_router(author_router)
+app.include_router(book_router)
 
 Instrumentator().instrument(app).expose(app)
 
