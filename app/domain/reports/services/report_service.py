@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timezone
 from io import BytesIO, StringIO
 import csv
 
@@ -18,6 +18,18 @@ class ReportService:
     def __init__(self, db: AsyncSession):
         self.db = db
 
+    def _normalize_datetime(
+        self,
+        value: datetime | None,
+    ) -> datetime | None:
+        if value is None:
+            return None
+
+        if value.tzinfo is None:
+            return value
+
+        return value.astimezone(timezone.utc).replace(tzinfo=None)
+
     def _apply_loan_filters(
         self,
         query,
@@ -27,6 +39,9 @@ class ReportService:
         start_date: datetime | None = None,
         end_date: datetime | None = None,
     ):
+        start_date = self._normalize_datetime(start_date)
+        end_date = self._normalize_datetime(end_date)
+
         if status:
             query = query.where(LoanModel.status == status)
 
@@ -49,6 +64,9 @@ class ReportService:
         start_date: datetime | None = None,
         end_date: datetime | None = None,
     ):
+        start_date = self._normalize_datetime(start_date)
+        end_date = self._normalize_datetime(end_date)
+
         total_books = await self.db.scalar(
             select(func.count()).select_from(BookModel)
         )
