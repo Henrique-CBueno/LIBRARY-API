@@ -68,6 +68,17 @@ class LoanModel(Base):
         nullable=False,
     )
 
+    fine_paid_at: Mapped[datetime | None] = mapped_column(
+        DateTime,
+        nullable=True,
+    )
+
+    fine_paid_amount: Mapped[float] = mapped_column(
+        Numeric(10, 2),
+        default=0,
+        nullable=False,
+    )
+
     renewal_count: Mapped[int] = mapped_column(
         Integer,
         default=0,

@@ -5,8 +5,14 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.cache.redis_service import CacheService
 from app.domain.loans.models.loan_model import LoanStatus
 from app.domain.loans.repositories.loan_repository import LoanRepository
-from app.domain.loans.schemas.loan_schema import LoanResponseSchema, CreateLoanSchema, ReturnLoanResponseSchema, \
-    UpdateLoanSchema, CancelLoanResponseSchema
+from app.domain.loans.schemas.loan_schema import (
+    CancelLoanResponseSchema,
+    CreateLoanSchema,
+    LoanResponseSchema,
+    PayLoanFineResponseSchema,
+    ReturnLoanResponseSchema,
+    UpdateLoanSchema,
+)
 from app.domain.loans.services.fine_calculator import FineCalculator
 from app.domain.loans.services.loan_service import LoanService
 from app.domain.users.repositories.user_repository import UserRepository
@@ -103,6 +109,17 @@ async def cancel_loan(
     service: LoanService = Depends(get_loan_service),
 ):
     return await service.cancel_loan(loan_id)
+
+@router.post(
+    "/{loan_id}/pay-fine",
+    response_model=PayLoanFineResponseSchema,
+    summary="Pay loan fine",
+)
+async def pay_loan_fine(
+    loan_id: str,
+    service: LoanService = Depends(get_loan_service),
+):
+    return await service.pay_fine(loan_id)
 
 @router.post(
     "",

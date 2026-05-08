@@ -7,7 +7,11 @@ from app.domain.loans.models.loan_model import LoanStatus
 from app.domain.loans.schemas.loan_schema import CreateLoanSchema, UpdateLoanSchema
 from app.domain.loans.services.fine_calculator import FineCalculator
 from app.domain.loans.services.loan_service import LoanService
-from app.exceptions.base import BusinessRuleException, NotFoundException
+from app.exceptions.base import (
+    BusinessRuleException,
+    FinePaymentRequiredException,
+    NotFoundException,
+)
 from tests.factories.book_factory import make_book
 from tests.factories.loan_factory import make_loan
 from tests.factories.user_factory import make_user
@@ -235,9 +239,13 @@ async def test_should_raise_not_found_when_getting_missing_loan():
 async def test_should_return_loan_and_restore_available_copy():
     service, repository, _, cache_service = make_service()
     book = make_book(available_copies=0)
+    fine_paid_at = datetime.utcnow()
     loan = make_loan(
         book_id=book.id,
         due_date=datetime.utcnow() - timedelta(days=3),
+        fine_amount=6,
+        fine_paid_at=fine_paid_at,
+        fine_paid_amount=6,
     )
     repository.find_active_by_id_for_update.return_value = loan
     repository.get_book_for_update.return_value = book
@@ -250,10 +258,100 @@ async def test_should_return_loan_and_restore_available_copy():
     assert book.available_copies == 1
     assert response["status"] == LoanStatus.RETURNED
     assert response["days_late"] == 3
+    assert response["fine_paid_at"] == fine_paid_at
+    assert response["fine_paid_amount"] == 6
     repository.db.commit.assert_awaited_once()
     repository.db.refresh.assert_awaited_once_with(loan)
     cache_service.delete.assert_any_await(f"book:{book.id}")
     cache_service.delete.assert_any_await(f"loans:item:{loan.id}")
+
+
+@pytest.mark.asyncio
+async def test_should_not_return_overdue_loan_when_fine_was_not_paid():
+    service, repository, _, _ = make_service()
+    loan = make_loan(
+        due_date=datetime.utcnow() - timedelta(days=3),
+    )
+    repository.find_active_by_id_for_update.return_value = loan
+
+    with pytest.raises(FinePaymentRequiredException) as exc:
+        await service.return_loan(loan.id)
+
+    assert str(exc.value) == "Loan fine must be paid before returning the book"
+    repository.get_book_for_update.assert_not_awaited()
+    repository.db.commit.assert_not_awaited()
+
+
+@pytest.mark.asyncio
+async def test_should_not_return_when_paid_fine_is_less_than_current_fine():
+    service, repository, _, _ = make_service()
+    loan = make_loan(
+        due_date=datetime.utcnow() - timedelta(days=3),
+        fine_amount=4,
+        fine_paid_at=datetime.utcnow() - timedelta(days=1),
+        fine_paid_amount=4,
+    )
+    repository.find_active_by_id_for_update.return_value = loan
+
+    with pytest.raises(FinePaymentRequiredException):
+        await service.return_loan(loan.id)
+
+    repository.get_book_for_update.assert_not_awaited()
+    repository.db.commit.assert_not_awaited()
+
+
+@pytest.mark.asyncio
+async def test_should_pay_overdue_loan_fine():
+    service, repository, _, cache_service = make_service()
+    loan = make_loan(
+        due_date=datetime.utcnow() - timedelta(days=2),
+    )
+    repository.find_active_by_id_for_update.return_value = loan
+
+    response = await service.pay_fine(loan.id)
+
+    assert loan.fine_amount == 4
+    assert loan.fine_paid_amount == 4
+    assert loan.fine_paid_at is not None
+    assert response["id"] == str(loan.id)
+    assert response["fine_amount"] == 4
+    assert response["payment_amount"] == 4
+    assert response["fine_paid_amount"] == 4
+    repository.db.commit.assert_awaited_once()
+    repository.db.refresh.assert_awaited_once_with(loan)
+    cache_service.delete.assert_any_await(f"loans:item:{loan.id}")
+
+
+@pytest.mark.asyncio
+async def test_should_not_pay_fine_when_loan_has_no_fine():
+    service, repository, _, _ = make_service()
+    loan = make_loan()
+    repository.find_active_by_id_for_update.return_value = loan
+
+    with pytest.raises(BusinessRuleException):
+        await service.pay_fine(loan.id)
+
+    repository.db.commit.assert_not_awaited()
+
+
+@pytest.mark.asyncio
+async def test_should_pay_only_remaining_fine_amount():
+    service, repository, _, _ = make_service()
+    loan = make_loan(
+        due_date=datetime.utcnow() - timedelta(days=3),
+        fine_amount=4,
+        fine_paid_amount=4,
+        fine_paid_at=datetime.utcnow() - timedelta(days=1),
+    )
+    repository.find_active_by_id_for_update.return_value = loan
+
+    response = await service.pay_fine(loan.id)
+
+    assert loan.fine_amount == 6
+    assert loan.fine_paid_amount == 6
+    assert response["fine_amount"] == 6
+    assert response["payment_amount"] == 2
+    assert response["fine_paid_amount"] == 6
 
 
 @pytest.mark.asyncio

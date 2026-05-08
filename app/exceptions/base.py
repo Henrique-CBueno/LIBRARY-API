@@ -3,7 +3,16 @@ class DomainException(Exception):
 
 
 class BusinessRuleException(DomainException):
-    pass
+    code = "BUSINESS_RULE_ERROR"
+
+
+class FinePaymentRequiredException(BusinessRuleException):
+    code = "FINE_PAYMENT_REQUIRED"
+
+    def __init__(self):
+        super().__init__(
+            "Loan fine must be paid before returning the book"
+        )
 
 
 class NotFoundException(DomainException):

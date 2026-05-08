@@ -24,6 +24,8 @@ class LoanResponseSchema(BaseModel):
     cancelled_at: datetime | None
     status: LoanStatus
     fine_amount: float
+    fine_paid_at: datetime | None
+    fine_paid_amount: float
     current_fine_amount: float
     days_late: int
     is_overdue: bool
@@ -39,6 +41,8 @@ class ReturnLoanResponseSchema(BaseModel):
     status: LoanStatus
     returned_at: datetime
     fine_amount: float
+    fine_paid_at: datetime | None
+    fine_paid_amount: float
     days_late: int
 
 
@@ -46,3 +50,11 @@ class CancelLoanResponseSchema(BaseModel):
     id: str
     status: LoanStatus
     cancelled_at: datetime
+
+
+class PayLoanFineResponseSchema(BaseModel):
+    id: str
+    fine_amount: float
+    payment_amount: float
+    fine_paid_amount: float
+    fine_paid_at: datetime

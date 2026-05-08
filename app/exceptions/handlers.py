@@ -16,7 +16,7 @@ async def business_exception_handler(
         status_code=400,
         content={
             "error": {
-                "code": "BUSINESS_RULE_ERROR",
+                "code": exc.code,
                 "message": str(exc),
             }
         },

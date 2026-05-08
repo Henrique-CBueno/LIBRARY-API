@@ -14,6 +14,8 @@ def make_loan(
     cancelled_at: datetime | None = None,
     status: LoanStatus = LoanStatus.ACTIVE,
     fine_amount: float = 0,
+    fine_paid_at: datetime | None = None,
+    fine_paid_amount: float = 0,
     renewal_count: int = 0,
 ):
     loan_date = loan_date or datetime.utcnow()
@@ -28,5 +30,7 @@ def make_loan(
         cancelled_at=cancelled_at,
         status=status,
         fine_amount=fine_amount,
+        fine_paid_at=fine_paid_at,
+        fine_paid_amount=fine_paid_amount,
         renewal_count=renewal_count,
     )

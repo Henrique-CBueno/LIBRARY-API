@@ -581,6 +581,19 @@ async def test_should_persist_fine_when_return_overdue_loan(
 
     await db_session.commit()
 
+    payment_response = await client.post(
+        f"/loans/{loan['id']}/pay-fine",
+    )
+
+    assert payment_response.status_code == 200
+
+    payment_body = payment_response.json()
+
+    assert payment_body["fine_amount"] == 8
+    assert payment_body["payment_amount"] == 8
+    assert payment_body["fine_paid_amount"] == 8
+    assert payment_body["fine_paid_at"] is not None
+
     response = await client.post(
         f"/loans/{loan['id']}/return",
     )
@@ -592,3 +605,104 @@ async def test_should_persist_fine_when_return_overdue_loan(
     assert body["status"] == "RETURNED"
     assert body["days_late"] == 4
     assert body["fine_amount"] == 8
+    assert body["fine_paid_amount"] == 8
+    assert body["fine_paid_at"] is not None
+
+
+async def test_should_not_return_overdue_loan_without_paid_fine(
+    client,
+    db_session,
+):
+    loan = await create_loan(client)
+
+    result = await db_session.execute(
+        select(LoanModel).where(
+            LoanModel.id == loan["id"]
+        )
+    )
+
+    loan_model = result.scalar_one()
+
+    loan_model.due_date = (
+        datetime.utcnow()
+        - timedelta(days=2)
+    )
+
+    await db_session.commit()
+
+    response = await client.post(
+        f"/loans/{loan['id']}/return",
+    )
+
+    assert response.status_code == 400
+
+    body = response.json()
+
+    assert body["error"]["code"] == "FINE_PAYMENT_REQUIRED"
+    assert (
+        body["error"]["message"]
+        == "Loan fine must be paid before returning the book"
+    )
+
+
+async def test_should_not_pay_fine_when_loan_is_not_overdue(client):
+    loan = await create_loan(client)
+
+    response = await client.post(
+        f"/loans/{loan['id']}/pay-fine",
+    )
+
+    assert response.status_code == 400
+
+    body = response.json()
+
+    assert body["error"]["message"] == "Loan has no fine to pay"
+
+
+async def test_should_not_return_when_paid_fine_is_less_than_current_fine(
+    client,
+    db_session,
+):
+    loan = await create_loan(client)
+
+    result = await db_session.execute(
+        select(LoanModel).where(
+            LoanModel.id == loan["id"]
+        )
+    )
+
+    loan_model = result.scalar_one()
+    loan_model.due_date = (
+        datetime.utcnow()
+        - timedelta(days=2)
+    )
+
+    await db_session.commit()
+
+    payment_response = await client.post(
+        f"/loans/{loan['id']}/pay-fine",
+    )
+
+    assert payment_response.status_code == 200
+    assert payment_response.json()["fine_paid_amount"] == 4
+
+    loan_model.due_date = (
+        datetime.utcnow()
+        - timedelta(days=3)
+    )
+
+    await db_session.commit()
+
+    response = await client.post(
+        f"/loans/{loan['id']}/return",
+    )
+
+    assert response.status_code == 400
+
+    body = response.json()
+
+    assert body["error"]["code"] == "FINE_PAYMENT_REQUIRED"
+    assert (
+        body["error"]["message"]
+        == "Loan fine must be paid before returning the book"
+    )

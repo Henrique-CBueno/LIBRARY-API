@@ -10,7 +10,11 @@ from app.domain.loans.services.fine_calculator import FineCalculator
 from app.domain.users.repositories.user_repository import UserRepository
 from app.events.bus import EventBus
 from app.events.loans.events import LoanCreatedEvent, LoanReturnedEvent, LoanCancelledEvent
-from app.exceptions.base import NotFoundException, BusinessRuleException
+from app.exceptions.base import (
+    BusinessRuleException,
+    FinePaymentRequiredException,
+    NotFoundException,
+)
 
 logger = structlog.get_logger()
 
@@ -64,6 +68,8 @@ class LoanService:
             "cancelled_at": loan.cancelled_at,
             "status": loan.status,
             "fine_amount": float(loan.fine_amount),
+            "fine_paid_at": loan.fine_paid_at,
+            "fine_paid_amount": float(loan.fine_paid_amount),
             "current_fine_amount": (
                 current_fine_amount
                 if loan.status == LoanStatus.ACTIVE
@@ -211,15 +217,6 @@ class LoanService:
                 "Active loan not found"
             )
 
-        book = await self.repository.get_book_for_update(
-            loan.book_id,
-        )
-
-        if not book:
-            raise NotFoundException(
-                "Book not found"
-            )
-
         now = datetime.utcnow()
 
         days_late = (
@@ -235,6 +232,20 @@ class LoanService:
                 now,
             )
         )
+
+        if fine_amount > 0 and (
+            float(loan.fine_paid_amount) < fine_amount
+        ):
+            raise FinePaymentRequiredException()
+
+        book = await self.repository.get_book_for_update(
+            loan.book_id,
+        )
+
+        if not book:
+            raise NotFoundException(
+                "Book not found"
+            )
 
         loan.status = LoanStatus.RETURNED
         loan.returned_at = now
@@ -277,7 +288,70 @@ class LoanService:
             "status": loan.status,
             "returned_at": loan.returned_at,
             "fine_amount": float(loan.fine_amount),
+            "fine_paid_at": loan.fine_paid_at,
+            "fine_paid_amount": float(loan.fine_paid_amount),
             "days_late": days_late,
+        }
+
+    async def pay_fine(
+        self,
+        loan_id: str,
+    ):
+        loan = (
+            await self.repository.find_active_by_id_for_update(
+                loan_id,
+            )
+        )
+
+        if not loan:
+            raise NotFoundException(
+                "Active loan not found"
+            )
+
+        now = datetime.utcnow()
+
+        fine_amount = self.fine_calculator.calculate_amount(
+            loan.due_date,
+            now,
+        )
+
+        if fine_amount <= 0:
+            raise BusinessRuleException(
+                "Loan has no fine to pay"
+            )
+
+        payment_amount = fine_amount - float(loan.fine_paid_amount)
+
+        if payment_amount <= 0:
+            raise BusinessRuleException(
+                "Loan fine is already paid"
+            )
+
+        loan.fine_amount = fine_amount
+        loan.fine_paid_amount = fine_amount
+        loan.fine_paid_at = now
+
+        await self.repository.db.commit()
+        await self.repository.db.refresh(loan)
+
+        await self._invalidate_loan_cache(
+            user_id=loan.user_id,
+            loan_id=loan.id,
+        )
+
+        logger.info(
+            "loan_fine_paid",
+            loan_id=str(loan.id),
+            fine_amount=float(loan.fine_amount),
+            payment_amount=payment_amount,
+        )
+
+        return {
+            "id": str(loan.id),
+            "fine_amount": float(loan.fine_amount),
+            "payment_amount": payment_amount,
+            "fine_paid_amount": float(loan.fine_paid_amount),
+            "fine_paid_at": loan.fine_paid_at,
         }
 
     async def list_active(self):
