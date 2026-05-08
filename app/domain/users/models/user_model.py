@@ -5,6 +5,7 @@ from sqlalchemy import String, DateTime, Boolean
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.infra.database.Base import Base
+from app.domain.users.enums.user_role import UserRole
 
 
 class UserModel(Base):
@@ -40,4 +41,10 @@ class UserModel(Base):
     is_active: Mapped[bool] = mapped_column(
         Boolean,
         default=True,
+    )
+
+    role: Mapped[str] = mapped_column(
+        String(20),
+        default=UserRole.USER.value,
+        nullable=False,
     )

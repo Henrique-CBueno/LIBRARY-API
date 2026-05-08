@@ -11,6 +11,7 @@ from sqlalchemy.pool import NullPool
 
 from app.infra.database.Base import Base
 from app.infra.database.session import get_db
+from app.infra.middleware.rate_limit import limiter
 from app.main import app
 
 DATABASE_URL = "postgresql+asyncpg://admin:admin@localhost:5433/library_test"
@@ -66,6 +67,7 @@ async def client(db_session):
     async def override_get_db():
         yield db_session
 
+    limiter.enabled = False
     app.dependency_overrides[get_db] = override_get_db
 
     transport = ASGITransport(app=app)
@@ -77,3 +79,4 @@ async def client(db_session):
         yield ac
 
     app.dependency_overrides.clear()
+    limiter.enabled = True

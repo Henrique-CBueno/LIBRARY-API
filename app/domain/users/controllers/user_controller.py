@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, Query, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.config.security.dependencies import get_current_user
+from app.config.security.dependencies import get_current_user, get_current_admin
 from app.domain.users.repositories.user_repository import UserRepository
 from app.domain.users.schemas.user_schema import (
     UserResponseSchema,
@@ -9,6 +9,7 @@ from app.domain.users.schemas.user_schema import (
     TokenResponseSchema,
     LoginSchema,
     UpdateUserSchema,
+    UpdateUserRoleSchema,
 )
 from app.domain.users.services.user_service import UserService
 from app.infra.database.session import get_db
@@ -116,3 +117,16 @@ async def delete_user(
     service: UserService = Depends(get_user_service),
 ):
     await service.delete_user(user_id)
+
+
+@router.put(
+    "/{user_id}/role",
+    status_code=204,
+)
+async def update_user_role(
+    user_id: str,
+    data: UpdateUserRoleSchema,
+    service: UserService = Depends(get_user_service),
+    _current_admin=Depends(get_current_admin),
+):
+    await service.update_role(user_id, data)

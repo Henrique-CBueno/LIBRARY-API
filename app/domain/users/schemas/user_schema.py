@@ -2,6 +2,8 @@ from datetime import datetime
 
 from pydantic import BaseModel, EmailStr
 
+from app.domain.users.enums.user_role import UserRole
+
 
 class CreateUserSchema(BaseModel):
     name: str
@@ -20,6 +22,10 @@ class UserResponseSchema(BaseModel):
 
 class UpdateUserSchema(BaseModel):
     name: str | None = None
+
+
+class UpdateUserRoleSchema(BaseModel):
+    role: UserRole
 
 
 class LoginSchema(BaseModel):

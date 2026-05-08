@@ -6,7 +6,9 @@ from app.domain.users.schemas.user_schema import (
     CreateUserSchema,
     LoginSchema,
     UpdateUserSchema,
+    UpdateUserRoleSchema,
 )
+from app.domain.users.enums.user_role import UserRole
 from app.exceptions.base import BusinessRuleException, NotFoundException
 
 
@@ -28,6 +30,7 @@ class UserService:
             name=data.name,
             email=str(data.email),
             password=hash_password(data.password),
+            role=UserRole.USER.value,
         )
 
         return await self.repository.create(user)
@@ -63,7 +66,7 @@ class UserService:
         if not valid_password:
             raise BusinessRuleException("Invalid credentials")
 
-        token = create_access_token(str(user.id))
+        token = create_access_token(str(user.id), user.role)
 
         return {"access_token": token}
 
@@ -87,6 +90,17 @@ class UserService:
 
         if data.name:
             user.name = data.name
+
+        return await self.repository.update(user)
+
+    async def update_role(
+        self,
+        user_id: str,
+        data: UpdateUserRoleSchema,
+    ):
+        user = await self.get_by_id(user_id)
+
+        user.role = data.role.value
 
         return await self.repository.update(user)
 

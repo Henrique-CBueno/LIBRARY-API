@@ -15,4 +15,5 @@ def make_user(
         email=email or f"{uuid.uuid7()}@email.com",
         password=hash_password(password),
         is_active=True,
+        role="USER",
     )

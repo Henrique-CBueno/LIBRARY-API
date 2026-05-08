@@ -13,6 +13,10 @@ class Settings(BaseSettings):
     JWT_SECRET: str = "SUA_SECRET_KEY"
     JWT_EXPIRE_MINUTES: int = 60
 
+    INITIAL_ADMIN_EMAIL: str | None = None
+    INITIAL_ADMIN_NAME: str | None = None
+    INITIAL_ADMIN_PASSWORD: str | None = None
+
     ENVIRONMENT: str = "development"
 
     model_config = SettingsConfigDict(env_file=".env", case_sensitive=True)

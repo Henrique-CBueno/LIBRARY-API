@@ -1,3 +1,31 @@
+import uuid6 as uuid
+
+from app.config.security.hashing import hash_password
+from app.domain.users.enums.user_role import UserRole
+from app.domain.users.models.user_model import UserModel
+from app.domain.users.repositories.user_repository import UserRepository
+from tests.helpers.auth_helper import authenticate_user
+
+
+async def _create_admin_user(
+    db_session,
+    email: str | None = None,
+    password: str = "123456",
+):
+    user = UserModel(
+        name="Admin",
+        email=email or f"{uuid.uuid7()}@email.com",
+        password=hash_password(password),
+        is_active=True,
+        role=UserRole.ADMIN.value,
+    )
+
+    db_session.add(user)
+    await db_session.commit()
+    await db_session.refresh(user)
+
+    return user, password
+
 async def test_should_not_create_duplicate_user(
     client,
 ):
@@ -99,3 +127,84 @@ async def test_should_soft_delete_user(
     response = await client.delete(f"/users/{user_id}")
 
     assert response.status_code == 204
+
+
+async def test_should_allow_admin_to_promote_user(
+    client,
+    db_session,
+):
+    admin, admin_password = await _create_admin_user(db_session)
+
+    token = await authenticate_user(
+        client,
+        admin.email,
+        admin_password,
+    )
+
+    create_response = await client.post(
+        "/users",
+        json={
+            "name": "User",
+            "email": f"{uuid.uuid7()}@email.com",
+            "password": "123456",
+        },
+    )
+
+    assert create_response.status_code == 201
+
+    user_id = create_response.json()["id"]
+
+    response = await client.put(
+        f"/users/{user_id}/role",
+        headers={"Authorization": f"Bearer {token}"},
+        json={"role": "ADMIN"},
+    )
+
+    assert response.status_code == 204
+
+    repository = UserRepository(db_session)
+    updated_user = await repository.find_by_id(user_id)
+
+    assert updated_user.role == UserRole.ADMIN.value
+
+
+async def test_should_forbid_non_admin_to_promote_user(
+    client,
+):
+    email = f"{uuid.uuid7()}@email.com"
+
+    await client.post(
+        "/users",
+        json={
+            "name": "User",
+            "email": email,
+            "password": "123456",
+        },
+    )
+
+    token = await authenticate_user(
+        client,
+        email,
+        "123456",
+    )
+
+    create_response = await client.post(
+        "/users",
+        json={
+            "name": "Other User",
+            "email": f"{uuid.uuid7()}@email.com",
+            "password": "123456",
+        },
+    )
+
+    assert create_response.status_code == 201
+
+    user_id = create_response.json()["id"]
+
+    response = await client.put(
+        f"/users/{user_id}/role",
+        headers={"Authorization": f"Bearer {token}"},
+        json={"role": "ADMIN"},
+    )
+
+    assert response.status_code == 401

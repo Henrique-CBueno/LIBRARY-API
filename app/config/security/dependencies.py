@@ -8,6 +8,7 @@ from app.config.security.jwt import decode_token
 from app.domain.users.repositories.user_repository import UserRepository
 from app.exceptions.base import NotFoundException, UnauthorizedException
 from app.infra.database.session import get_db
+from app.domain.users.enums.user_role import UserRole
 
 security = HTTPBearer()
 
@@ -35,3 +36,12 @@ async def get_current_user(
         raise NotFoundException("User not found")
 
     return user
+
+
+async def get_current_admin(
+    current_user=Depends(get_current_user),
+):
+    if current_user.role != UserRole.ADMIN.value:
+        raise UnauthorizedException("Admin access required")
+
+    return current_user
