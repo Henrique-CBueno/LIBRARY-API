@@ -8,7 +8,7 @@ from app.domain.loans.repositories.loan_repository import LoanRepository
 from app.domain.loans.schemas.loan_schema import CreateLoanSchema, UpdateLoanSchema
 from app.domain.loans.services.fine_calculator import FineCalculator
 from app.domain.users.repositories.user_repository import UserRepository
-from app.events.bus import event_bus
+from app.events.bus import EventBus
 from app.events.loans.events import LoanCreatedEvent, LoanReturnedEvent, LoanCancelledEvent
 from app.exceptions.base import NotFoundException, BusinessRuleException
 
@@ -26,11 +26,13 @@ class LoanService:
         user_repository: UserRepository,
         cache_service: CacheService,
         fine_calculator: FineCalculator,
+        event_bus: EventBus,
     ):
         self.repository = repository
         self.user_repository = user_repository
         self.cache_service = cache_service
         self.fine_calculator = fine_calculator
+        self.event_bus = event_bus
 
     def _serialize_loan(
         self,
@@ -151,7 +153,7 @@ class LoanService:
             book_id=str(data.book_id),
         )
 
-        await event_bus.publish(
+        await self.event_bus.publish(
             LoanCreatedEvent(
                 occurred_at=datetime.utcnow(),
                 loan_id=created_loan.id,
@@ -261,7 +263,7 @@ class LoanService:
             fine_amount=float(loan.fine_amount),
         )
 
-        await event_bus.publish(
+        await self.event_bus.publish(
             LoanReturnedEvent(
                 occurred_at=datetime.utcnow(),
                 loan_id=loan.id,
@@ -507,7 +509,7 @@ class LoanService:
             book_id=str(loan.book_id),
         )
 
-        await event_bus.publish(
+        await self.event_bus.publish(
             LoanCancelledEvent(
                 occurred_at=datetime.utcnow(),
                 loan_id=loan.id,
