@@ -8,6 +8,8 @@ from app.domain.loans.repositories.loan_repository import LoanRepository
 from app.domain.loans.schemas.loan_schema import CreateLoanSchema, UpdateLoanSchema
 from app.domain.loans.services.fine_calculator import FineCalculator
 from app.domain.users.repositories.user_repository import UserRepository
+from app.events.bus import event_bus
+from app.events.loans.events import LoanCreatedEvent, LoanReturnedEvent, LoanCancelledEvent
 from app.exceptions.base import NotFoundException, BusinessRuleException
 
 logger = structlog.get_logger()
@@ -149,6 +151,15 @@ class LoanService:
             book_id=str(data.book_id),
         )
 
+        await event_bus.publish(
+            LoanCreatedEvent(
+                occurred_at=datetime.utcnow(),
+                loan_id=created_loan.id,
+                user_id=created_loan.user_id,
+                book_id=created_loan.book_id,
+            )
+        )
+
         return self._serialize_loan(created_loan)
 
     async def get_loan(
@@ -248,6 +259,15 @@ class LoanService:
             loan_id=str(loan.id),
             book_id=str(loan.book_id),
             fine_amount=float(loan.fine_amount),
+        )
+
+        await event_bus.publish(
+            LoanReturnedEvent(
+                occurred_at=datetime.utcnow(),
+                loan_id=loan.id,
+                user_id=loan.user_id,
+                book_id=loan.book_id,
+            )
         )
 
         return {
@@ -485,6 +505,15 @@ class LoanService:
             "loan_cancelled",
             loan_id=str(loan.id),
             book_id=str(loan.book_id),
+        )
+
+        await event_bus.publish(
+            LoanCancelledEvent(
+                occurred_at=datetime.utcnow(),
+                loan_id=loan.id,
+                user_id=loan.user_id,
+                book_id=loan.book_id,
+            )
         )
 
         return {

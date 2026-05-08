@@ -10,6 +10,7 @@ from app.domain.loans.schemas.loan_schema import LoanResponseSchema, CreateLoanS
 from app.domain.loans.services.fine_calculator import FineCalculator
 from app.domain.loans.services.loan_service import LoanService
 from app.domain.users.repositories.user_repository import UserRepository
+from app.events.registrar_handlers import register_event_handlers
 from app.infra.database.session import get_db
 from app.infra.padronize.pagination.schemas import PaginatedResponse
 
@@ -22,6 +23,8 @@ router = APIRouter(
 def get_loan_service(
     db: AsyncSession = Depends(get_db),
 ):
+    register_event_handlers(db)
+
     return LoanService(
         repository=LoanRepository(db),
         user_repository=UserRepository(db),
