@@ -1,6 +1,6 @@
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Response, status
 from fastapi.params import Depends
 from prometheus_fastapi_instrumentator import Instrumentator
 from slowapi.errors import RateLimitExceeded
@@ -90,12 +90,15 @@ async def root():
 
 @app.get("/health", tags=["Observability"])
 async def health(
+    response: Response,
     db: AsyncSession = Depends(get_db),
 ):
     postgres_ok = await check_postgres(db)
     redis_ok = await check_redis()
 
     is_healthy = postgres_ok and redis_ok
+    if not is_healthy:
+        response.status_code = status.HTTP_503_SERVICE_UNAVAILABLE
 
     return {
         "status": "healthy" if is_healthy else "unhealthy",
