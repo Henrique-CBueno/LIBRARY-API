@@ -37,6 +37,31 @@ async def test_should_get_author_by_id(client):
     assert response.json()["id"] == author["id"]
 
 
+async def test_should_list_authors_paginated(client):
+    first_author = await create_author(
+        client,
+        name="Machado de Assis",
+    )
+    await create_author(
+        client,
+        name="Clarice Lispector",
+    )
+
+    response = await client.get(
+        "/authors?page=1&size=1"
+    )
+
+    assert response.status_code == 200
+
+    body = response.json()
+
+    assert len(body["items"]) == 1
+    assert body["items"][0]["id"] == first_author["id"]
+    assert body["total"] == 2
+    assert body["page"] == 1
+    assert body["size"] == 1
+
+
 async def test_should_return_404_when_author_not_found(client):
     response = await client.get(
         "/authors/00000000-0000-0000-0000-000000000000"

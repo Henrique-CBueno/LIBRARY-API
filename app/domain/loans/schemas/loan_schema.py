@@ -10,6 +10,10 @@ class CreateLoanSchema(BaseModel):
     book_id: str
 
 
+class UpdateLoanSchema(BaseModel):
+    due_date: datetime | None = None
+
+
 class LoanResponseSchema(BaseModel):
     id: str
     user_id: str
@@ -36,3 +40,9 @@ class ReturnLoanResponseSchema(BaseModel):
     returned_at: datetime
     fine_amount: float
     days_late: int
+
+
+class CancelLoanResponseSchema(BaseModel):
+    id: str
+    status: LoanStatus
+    cancelled_at: datetime

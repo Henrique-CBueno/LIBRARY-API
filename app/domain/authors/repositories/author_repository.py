@@ -1,4 +1,4 @@
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import joinedload
 
@@ -34,6 +34,39 @@ class AuthorRepository:
         result = await self.db.execute(query)
 
         return result.scalar_one_or_none()
+
+    async def list_authors_paginated(
+        self,
+        page: int,
+        size: int,
+    ):
+        offset = (page - 1) * size
+
+        query = (
+            select(AuthorModel)
+            .where(AuthorModel.is_active.is_(True))
+            .order_by(AuthorModel.created_at.asc())
+            .offset(offset)
+            .limit(size)
+        )
+
+        result = await self.db.execute(query)
+
+        authors = result.scalars().all()
+
+        total_query = (
+            select(func.count())
+            .select_from(AuthorModel)
+            .where(AuthorModel.is_active.is_(True))
+        )
+
+        total_result = await self.db.execute(
+            total_query
+        )
+
+        total = total_result.scalar() or 0
+
+        return authors, total
 
     async def find_by_id_with_books(
         self,

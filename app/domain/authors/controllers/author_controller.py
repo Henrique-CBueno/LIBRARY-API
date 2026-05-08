@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.cache.redis_service import CacheService
@@ -6,6 +6,7 @@ from app.domain.authors.repositories.author_repository import AuthorRepository
 from app.domain.authors.schemas.author_schema import AuthorResponseSchema, CreateAuthorSchema, UpdateAuthorSchema
 from app.domain.authors.services.author_service import AuthorService
 from app.infra.database.session import get_db
+from app.infra.padronize.pagination.schemas import PaginatedResponse
 
 router = APIRouter(
     prefix="/authors",
@@ -38,6 +39,25 @@ async def create_author(
     ),
 ):
     return await service.create_author(data)
+
+
+@router.get(
+    "",
+    response_model=PaginatedResponse[
+        AuthorResponseSchema
+    ],
+)
+async def list_authors(
+    page: int = Query(1, ge=1),
+    size: int = Query(10, ge=1, le=100),
+    service: AuthorService = Depends(
+        get_author_service
+    ),
+):
+    return await service.list_authors_paginated(
+        page,
+        size,
+    )
 
 
 @router.get(

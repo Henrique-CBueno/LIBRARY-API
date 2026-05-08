@@ -68,6 +68,22 @@ async def test_repository_should_not_find_inactive_author(db_session):
 
 
 @pytest.mark.asyncio
+async def test_repository_should_list_authors_paginated(db_session):
+    data = await seed_author_with_books(db_session)
+    repository = AuthorRepository(db_session)
+
+    authors, total = await repository.list_authors_paginated(
+        page=1,
+        size=10,
+    )
+
+    assert total == 1
+    assert [author.id for author in authors] == [
+        data["author"].id
+    ]
+
+
+@pytest.mark.asyncio
 async def test_repository_should_find_author_with_books(db_session):
     data = await seed_author_with_books(db_session)
     repository = AuthorRepository(db_session)

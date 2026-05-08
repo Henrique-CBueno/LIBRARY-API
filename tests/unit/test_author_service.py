@@ -56,6 +56,33 @@ async def test_should_get_author():
 
 
 @pytest.mark.asyncio
+async def test_should_list_authors_paginated():
+    service, repository, _ = make_service()
+    authors = [
+        make_author(name="Machado de Assis"),
+        make_author(name="Clarice Lispector"),
+    ]
+    repository.list_authors_paginated.return_value = (
+        authors,
+        2,
+    )
+
+    response = await service.list_authors_paginated(
+        page=1,
+        size=10,
+    )
+
+    assert response["items"] == authors
+    assert response["total"] == 2
+    assert response["page"] == 1
+    assert response["size"] == 10
+    repository.list_authors_paginated.assert_awaited_once_with(
+        1,
+        10,
+    )
+
+
+@pytest.mark.asyncio
 async def test_should_raise_not_found_when_author_does_not_exist():
     service, repository, _ = make_service()
     repository.find_by_id.return_value = None

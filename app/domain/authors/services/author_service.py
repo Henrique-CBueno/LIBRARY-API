@@ -43,6 +43,25 @@ class AuthorService:
 
         return author
 
+    async def list_authors_paginated(
+        self,
+        page: int,
+        size: int,
+    ):
+        authors, total = (
+            await self.repository.list_authors_paginated(
+                page,
+                size,
+            )
+        )
+
+        return {
+            "items": authors,
+            "total": total,
+            "page": page,
+            "size": size,
+        }
+
     async def delete_author(
         self,
         author_id: str,
