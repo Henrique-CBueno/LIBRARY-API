@@ -18,6 +18,7 @@ def make_service():
     repository.db = AsyncMock()
     user_repository = AsyncMock()
     cache_service = AsyncMock()
+    cache_service.get.return_value = None
     fine_calculator = FineCalculator()
 
     return (
@@ -114,8 +115,11 @@ async def test_should_create_loan_and_decrease_available_copies():
     assert response["user_id"] == user.id
     repository.db.commit.assert_awaited_once()
     repository.db.refresh.assert_awaited_once_with(created_loan)
-    cache_service.delete.assert_awaited_once_with(f"book:{book.id}")
-    cache_service.delete_pattern.assert_awaited_once_with("books:list*")
+    cache_service.delete.assert_any_await(f"book:{book.id}")
+    cache_service.delete.assert_any_await(f"loans:item:{created_loan.id}")
+    cache_service.delete_pattern.assert_any_await("books:list*")
+    cache_service.delete_pattern.assert_any_await("loans:list*")
+    cache_service.delete_pattern.assert_any_await(f"loans:user:{user.id}:*")
 
 
 @pytest.mark.asyncio
@@ -197,6 +201,23 @@ async def test_should_get_loan():
 
     assert response["id"] == str(loan.id)
     repository.find_by_id.assert_awaited_once_with(loan.id)
+    cache_service = service.cache_service
+    cache_service.set.assert_awaited_once()
+
+
+@pytest.mark.asyncio
+async def test_should_return_cached_loan():
+    service, repository, _, cache_service = make_service()
+    cached_loan = {
+        "id": "loan-id",
+        "status": LoanStatus.ACTIVE,
+    }
+    cache_service.get.return_value = cached_loan
+
+    response = await service.get_loan("loan-id")
+
+    assert response == cached_loan
+    repository.find_by_id.assert_not_awaited()
 
 
 @pytest.mark.asyncio
@@ -229,7 +250,8 @@ async def test_should_return_loan_and_restore_available_copy():
     assert response["days_late"] == 3
     repository.db.commit.assert_awaited_once()
     repository.db.refresh.assert_awaited_once_with(loan)
-    cache_service.delete.assert_awaited_once_with(f"book:{book.id}")
+    cache_service.delete.assert_any_await(f"book:{book.id}")
+    cache_service.delete.assert_any_await(f"loans:item:{loan.id}")
 
 
 @pytest.mark.asyncio
@@ -297,6 +319,27 @@ async def test_should_list_paginated_loans():
         status=LoanStatus.ACTIVE,
         overdue=False,
     )
+    service.cache_service.set.assert_awaited_once()
+
+
+@pytest.mark.asyncio
+async def test_should_return_cached_paginated_loans():
+    service, repository, _, cache_service = make_service()
+    cached_response = {
+        "items": [],
+        "total": 0,
+        "page": 1,
+        "size": 10,
+    }
+    cache_service.get.return_value = cached_response
+
+    response = await service.list_paginated(
+        page=1,
+        size=10,
+    )
+
+    assert response == cached_response
+    repository.list_paginated.assert_not_awaited()
 
 
 @pytest.mark.asyncio
@@ -344,6 +387,30 @@ async def test_should_list_by_user_paginated():
 
     assert response["items"][0]["user_id"] == user.id
     assert response["total"] == 1
+    cache_service = service.cache_service
+    cache_service.set.assert_awaited_once()
+
+
+@pytest.mark.asyncio
+async def test_should_return_cached_user_loans():
+    service, repository, user_repository, cache_service = make_service()
+    cached_response = {
+        "items": [],
+        "total": 0,
+        "page": 1,
+        "size": 10,
+    }
+    cache_service.get.return_value = cached_response
+
+    response = await service.list_by_user_paginated(
+        user_id="user-id",
+        page=1,
+        size=10,
+    )
+
+    assert response == cached_response
+    user_repository.find_by_id.assert_not_awaited()
+    repository.find_by_user_paginated.assert_not_awaited()
 
 
 @pytest.mark.asyncio
@@ -448,7 +515,8 @@ async def test_should_cancel_loan_and_restore_available_copy():
     assert response["status"] == LoanStatus.CANCELLED
     repository.db.commit.assert_awaited_once()
     repository.db.refresh.assert_awaited_once_with(loan)
-    cache_service.delete.assert_awaited_once_with(f"book:{book.id}")
+    cache_service.delete.assert_any_await(f"book:{book.id}")
+    cache_service.delete.assert_any_await(f"loans:item:{loan.id}")
 
 
 @pytest.mark.asyncio

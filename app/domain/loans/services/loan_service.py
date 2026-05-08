@@ -16,6 +16,7 @@ logger = structlog.get_logger()
 class LoanService:
     LOAN_DAYS = 14
     MAX_ACTIVE_LOANS = 3
+    CACHE_TTL_SECONDS = 30
 
     def __init__(
         self,
@@ -136,6 +137,10 @@ class LoanService:
         await self.cache_service.delete_pattern(
             "books:list*"
         )
+        await self._invalidate_loan_cache(
+            user_id=data.user_id,
+            loan_id=created_loan.id,
+        )
 
         logger.info(
             "loan_created",
@@ -150,6 +155,15 @@ class LoanService:
         self,
         loan_id: str,
     ):
+        cache_key = f"loans:item:{loan_id}"
+
+        cached_loan = await self.cache_service.get(
+            cache_key
+        )
+
+        if cached_loan:
+            return cached_loan
+
         loan = await self.repository.find_by_id(
             loan_id,
         )
@@ -159,7 +173,15 @@ class LoanService:
                 "Loan not found"
             )
 
-        return self._serialize_loan(loan)
+        serialized_loan = self._serialize_loan(loan)
+
+        await self.cache_service.set(
+            cache_key,
+            serialized_loan,
+            expire=self.CACHE_TTL_SECONDS,
+        )
+
+        return serialized_loan
 
     async def return_loan(
         self,
@@ -215,6 +237,10 @@ class LoanService:
         )
         await self.cache_service.delete_pattern(
             "books:list*"
+        )
+        await self._invalidate_loan_cache(
+            user_id=loan.user_id,
+            loan_id=loan.id,
         )
 
         logger.info(
@@ -292,6 +318,17 @@ class LoanService:
             status: LoanStatus | None = None,
             overdue: bool | None = None,
     ):
+        cache_key = (
+            f"loans:list:{page}:{size}:{user_id}:{book_id}:{status}:{overdue}"
+        )
+
+        cached_loans = await self.cache_service.get(
+            cache_key
+        )
+
+        if cached_loans:
+            return cached_loans
+
         loans, total = await self.repository.list_paginated(
             page=page,
             size=size,
@@ -301,7 +338,7 @@ class LoanService:
             overdue=overdue,
         )
 
-        return {
+        response = {
             "items": [
                 self._serialize_loan(loan)
                 for loan in loans
@@ -311,6 +348,14 @@ class LoanService:
             "size": size,
         }
 
+        await self.cache_service.set(
+            cache_key,
+            response,
+            expire=self.CACHE_TTL_SECONDS,
+        )
+
+        return response
+
     async def list_by_user_paginated(
             self,
             user_id: str,
@@ -318,6 +363,17 @@ class LoanService:
             size: int,
             status: LoanStatus | None = None,
     ):
+        cache_key = (
+            f"loans:user:{user_id}:{page}:{size}:{status}"
+        )
+
+        cached_loans = await self.cache_service.get(
+            cache_key
+        )
+
+        if cached_loans:
+            return cached_loans
+
         user = await self.user_repository.find_by_id(user_id)
 
         if not user:
@@ -330,7 +386,7 @@ class LoanService:
             status=status,
         )
 
-        return {
+        response = {
             "items": [
                 self._serialize_loan(loan)
                 for loan in loans
@@ -339,6 +395,14 @@ class LoanService:
             "page": page,
             "size": size,
         }
+
+        await self.cache_service.set(
+            cache_key,
+            response,
+            expire=self.CACHE_TTL_SECONDS,
+        )
+
+        return response
 
     async def update_loan(
             self,
@@ -364,6 +428,11 @@ class LoanService:
             loan.due_date = data.due_date
 
         updated_loan = await self.repository.update(loan)
+
+        await self._invalidate_loan_cache(
+            user_id=updated_loan.user_id,
+            loan_id=updated_loan.id,
+        )
 
         logger.info(
             "loan_updated",
@@ -407,6 +476,10 @@ class LoanService:
         await self.cache_service.delete_pattern(
             "books:list*"
         )
+        await self._invalidate_loan_cache(
+            user_id=loan.user_id,
+            loan_id=loan.id,
+        )
 
         logger.info(
             "loan_cancelled",
@@ -419,3 +492,18 @@ class LoanService:
             "status": loan.status,
             "cancelled_at": loan.cancelled_at,
         }
+
+    async def _invalidate_loan_cache(
+        self,
+        user_id: str,
+        loan_id: str,
+    ):
+        await self.cache_service.delete(
+            f"loans:item:{loan_id}"
+        )
+        await self.cache_service.delete_pattern(
+            "loans:list*"
+        )
+        await self.cache_service.delete_pattern(
+            f"loans:user:{user_id}:*"
+        )
