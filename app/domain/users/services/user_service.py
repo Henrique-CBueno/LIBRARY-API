@@ -24,7 +24,7 @@ class UserService:
         existing_user = await self.repository.find_by_email(str(data.email))
 
         if existing_user:
-            raise BusinessRuleException("Email already exists")
+            raise BusinessRuleException("E-mail já cadastrado")
 
         user = UserModel(
             name=data.name,
@@ -42,7 +42,7 @@ class UserService:
         user = await self.repository.find_by_id(user_id)
 
         if not user:
-            raise NotFoundException("User not found")
+            raise NotFoundException("Usuário não encontrado")
 
         return user
 
@@ -56,7 +56,7 @@ class UserService:
         user = await self.repository.find_by_email(str(data.email))
 
         if not user:
-            raise BusinessRuleException("Invalid credentials")
+            raise BusinessRuleException("Credenciais inválidas")
 
         valid_password = verify_password(
             data.password,
@@ -64,7 +64,7 @@ class UserService:
         )
 
         if not valid_password:
-            raise BusinessRuleException("Invalid credentials")
+            raise BusinessRuleException("Credenciais inválidas")
 
         token = create_access_token(str(user.id), user.role)
 
@@ -77,7 +77,7 @@ class UserService:
         user = await self.repository.find_by_id(user_id)
 
         if not user:
-            raise NotFoundException("User not found")
+            raise NotFoundException("Usuário não encontrado")
 
         return user
 

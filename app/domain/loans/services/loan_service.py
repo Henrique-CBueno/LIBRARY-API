@@ -100,7 +100,7 @@ class LoanService:
 
         if not user:
             raise NotFoundException(
-                "User not found"
+                "Usuário não encontrado"
             )
 
         active_loans = (
@@ -111,7 +111,7 @@ class LoanService:
 
         if active_loans >= self.MAX_ACTIVE_LOANS:
             raise BusinessRuleException(
-                "User has reached the maximum number of active loans"
+                "Usuário atingiu o número máximo de empréstimos ativos"
             )
 
         book = await self.repository.get_book_for_update(
@@ -120,12 +120,12 @@ class LoanService:
 
         if not book:
             raise NotFoundException(
-                "Book not found"
+                "Livro não encontrado"
             )
 
         if book.available_copies <= 0:
             raise BusinessRuleException(
-                "Book is unavailable"
+                "Livro indisponível"
             )
 
         now = datetime.utcnow()
@@ -198,7 +198,7 @@ class LoanService:
 
         if not loan:
             raise NotFoundException(
-                "Loan not found"
+                "Empréstimo não encontrado"
             )
 
         serialized_loan = self._serialize_loan(loan)
@@ -223,7 +223,7 @@ class LoanService:
 
         if not loan:
             raise NotFoundException(
-                "Active loan not found"
+                "Empréstimo ativo não encontrado"
             )
 
         now = datetime.utcnow()
@@ -253,7 +253,7 @@ class LoanService:
 
         if not book:
             raise NotFoundException(
-                "Book not found"
+                "Livro não encontrado"
             )
 
         loan.status = LoanStatus.RETURNED
@@ -316,7 +316,7 @@ class LoanService:
 
         if not loan:
             raise NotFoundException(
-                "Active loan not found"
+                "Empréstimo ativo não encontrado"
             )
 
         now = datetime.utcnow()
@@ -328,14 +328,14 @@ class LoanService:
 
         if fine_amount <= 0:
             raise BusinessRuleException(
-                "Loan has no fine to pay"
+                "O empréstimo não possui multa a pagar"
             )
 
         payment_amount = fine_amount - float(loan.fine_paid_amount)
 
         if payment_amount <= 0:
             raise BusinessRuleException(
-                "Loan fine is already paid"
+                "A multa do empréstimo já está paga"
             )
 
         loan.fine_amount = fine_amount
@@ -484,7 +484,7 @@ class LoanService:
         user = await self.user_repository.find_by_id(user_id)
 
         if not user:
-            raise NotFoundException("User not found")
+            raise NotFoundException("Usuário não encontrado")
 
         loans, total = await self.repository.find_by_user_paginated(
             user_id=user_id,
@@ -519,17 +519,17 @@ class LoanService:
         loan = await self.repository.find_by_id(loan_id)
 
         if not loan:
-            raise NotFoundException("Loan not found")
+            raise NotFoundException("Empréstimo não encontrado")
 
         if loan.status != LoanStatus.ACTIVE:
             raise BusinessRuleException(
-                "Only active loans can be updated"
+                "Apenas empréstimos ativos podem ser atualizados"
             )
 
         if data.due_date is not None:
             if data.due_date <= loan.loan_date:
                 raise BusinessRuleException(
-                    "due_date must be greater than loan_date"
+                    "A data de vencimento deve ser maior que a data do empréstimo"
                 )
 
             loan.due_date = data.due_date
@@ -557,14 +557,14 @@ class LoanService:
         )
 
         if not loan:
-            raise NotFoundException("Active loan not found")
+            raise NotFoundException("Empréstimo ativo não encontrado")
 
         book = await self.repository.get_book_for_update(
             loan.book_id,
         )
 
         if not book:
-            raise NotFoundException("Book not found")
+            raise NotFoundException("Livro não encontrado")
 
         now = datetime.utcnow()
 
@@ -636,7 +636,7 @@ class LoanService:
 
         if not loan:
             raise NotFoundException(
-                "Active loan not found"
+                "Empréstimo ativo não encontrado"
             )
 
         days_late = self.fine_calculator.calculate_days_late(
@@ -645,12 +645,12 @@ class LoanService:
 
         if days_late > 0:
             raise BusinessRuleException(
-                "Overdue loans cannot be renewed"
+                "Empréstimos em atraso não podem ser renovados"
             )
 
         if loan.renewal_count >= self.MAX_RENEWALS:
             raise BusinessRuleException(
-                "Loan has reached the maximum number of renewals"
+                "O empréstimo atingiu o número máximo de renovações"
             )
 
         has_active_reservation = (
@@ -661,7 +661,7 @@ class LoanService:
 
         if has_active_reservation:
             raise BusinessRuleException(
-                "Loan cannot be renewed because the book has active reservations"
+                "O empréstimo não pode ser renovado porque o livro possui reservas ativas"
             )
 
         loan.due_date = loan.due_date + timedelta(

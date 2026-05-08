@@ -97,7 +97,7 @@ async def list_loans_by_user(
     user=Depends(get_current_user),
 ):
     if user.role != UserRole.ADMIN.value and user_id != str(user.id):
-        raise UnauthorizedException("You can only access your own loans")
+        raise UnauthorizedException("Você só pode acessar seus próprios empréstimos")
 
     return await service.list_by_user_paginated(
         user_id=user_id,
@@ -137,7 +137,7 @@ async def cancel_loan(
     loan = await service.get_loan(loan_id)
 
     if user_is_not_admin_and_does_not_own_loan(user, loan["user_id"]):
-        raise UnauthorizedException("You can only cancel your own loans")
+        raise UnauthorizedException("Você só pode cancelar seus próprios empréstimos")
 
     return await service.cancel_loan(loan_id)
 
@@ -154,7 +154,7 @@ async def pay_loan_fine(
     loan = await service.get_loan(loan_id)
 
     if user_is_not_admin_and_does_not_own_loan(user, loan["user_id"]):
-        raise UnauthorizedException("You can only pay your own loans")
+        raise UnauthorizedException("Você só pode pagar seus próprios empréstimos")
 
     return await service.pay_fine(loan_id)
 
@@ -221,7 +221,7 @@ async def get_loan(
     loan = await service.get_loan(loan_id)
 
     if user_is_not_admin_and_does_not_own_loan(user, loan["user_id"]):
-        raise UnauthorizedException("You can only view your own loans")
+        raise UnauthorizedException("Você só pode visualizar seus próprios empréstimos")
 
     return await service.get_loan(loan_id)
 
@@ -241,7 +241,7 @@ async def return_loan(
     loan = await service.get_loan(loan_id)
 
     if user_is_not_admin_and_does_not_own_loan(user, loan["user_id"]):
-        raise UnauthorizedException("You can only return your own loans")
+        raise UnauthorizedException("Você só pode devolver seus próprios empréstimos")
 
     return await service.return_loan(loan_id)
 
@@ -260,7 +260,7 @@ async def renew_loan(
     loan = await service.get_loan(loan_id)
 
     if user_is_not_admin_and_does_not_own_loan(user, loan["user_id"]):
-        raise UnauthorizedException("You can only renew your own loans")
+        raise UnauthorizedException("Você só pode renovar seus próprios empréstimos")
 
     return await service.renew_loan(loan_id)
 

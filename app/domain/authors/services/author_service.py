@@ -38,7 +38,7 @@ class AuthorService:
 
         if not author:
             raise NotFoundException(
-                "Author not found"
+                "Autor não encontrado"
             )
 
         return author
@@ -74,7 +74,7 @@ class AuthorService:
 
         if not author:
             raise NotFoundException(
-                "Author not found"
+                "Autor não encontrado"
             )
 
         await self.repository.soft_delete(author)
@@ -98,7 +98,7 @@ class AuthorService:
 
         if not author:
             raise NotFoundException(
-                "Author not found"
+                "Autor não encontrado"
             )
 
         if "name" in data.model_fields_set and data.name:

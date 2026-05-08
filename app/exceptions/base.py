@@ -11,7 +11,7 @@ class FinePaymentRequiredException(BusinessRuleException):
 
     def __init__(self):
         super().__init__(
-            "Loan fine must be paid before returning the book"
+            "A multa do empréstimo deve ser paga antes de devolver o livro"
         )
 
 

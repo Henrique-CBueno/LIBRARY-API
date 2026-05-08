@@ -35,16 +35,16 @@ class ReservationService:
         user = await self.user_repository.find_by_id(user_id)
 
         if not user:
-            raise NotFoundException("User not found")
+            raise NotFoundException("Usuário não encontrado")
 
         book = await self.book_repository.find_by_id(data.book_id)
 
         if not book:
-            raise NotFoundException("Book not found")
+            raise NotFoundException("Livro não encontrado")
 
         if book.available_copies > 0:
             raise BusinessRuleException(
-                "Book is available and does not need reservation"
+                "O livro está disponível e não precisa de reserva"
             )
 
         existing_reservation = await self.repository.find_active_by_user_and_book(
@@ -54,7 +54,7 @@ class ReservationService:
 
         if existing_reservation:
             raise BusinessRuleException(
-                "User already has an active reservation for this book"
+                "O usuário já possui uma reserva ativa para este livro"
             )
 
         reservation = ReservationModel(
@@ -89,11 +89,11 @@ class ReservationService:
         reservation = await self.repository.find_by_id(reservation_id)
 
         if not reservation:
-            raise NotFoundException("Reservation not found")
+            raise NotFoundException("Reserva não encontrada")
 
         if reservation.status != ReservationStatus.ACTIVE:
             raise BusinessRuleException(
-                "Only active reservations can be cancelled"
+                "Apenas reservas ativas podem ser canceladas"
             )
 
         reservation.status = ReservationStatus.CANCELLED
@@ -150,6 +150,6 @@ class ReservationService:
         reservation = await self.repository.find_by_id(reservation_id)
 
         if not reservation:
-            raise NotFoundException("Reservation not found")
+            raise NotFoundException("Reserva não encontrada")
 
         return reservation

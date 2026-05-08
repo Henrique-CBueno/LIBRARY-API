@@ -22,9 +22,9 @@ async def get_current_user(
     try:
         payload = decode_token(token)
     except jwt.ExpiredSignatureError as exc:
-        raise UnauthorizedException("Token expired") from exc
+        raise UnauthorizedException("Token expirado") from exc
     except jwt.PyJWTError as exc:
-        raise UnauthorizedException("Invalid token") from exc
+        raise UnauthorizedException("Token inválido") from exc
 
     user_id = payload.get("sub")
 
@@ -33,7 +33,7 @@ async def get_current_user(
     user = await repository.find_by_id(user_id)
 
     if not user:
-        raise NotFoundException("User not found")
+        raise NotFoundException("Usuário não encontrado")
 
     return user
 
@@ -42,6 +42,6 @@ async def get_current_admin(
     current_user=Depends(get_current_user),
 ):
     if current_user.role != UserRole.ADMIN.value:
-        raise UnauthorizedException("Admin access required")
+        raise UnauthorizedException("Acesso de administrador obrigatório")
 
     return current_user

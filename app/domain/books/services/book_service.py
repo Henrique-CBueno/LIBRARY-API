@@ -31,7 +31,7 @@ class BookService:
 
         if existing_book:
             raise BusinessRuleException(
-                "ISBN already exists"
+                "ISBN já cadastrado"
             )
 
         author = (
@@ -42,7 +42,7 @@ class BookService:
 
         if not author:
             raise NotFoundException(
-                "Author not found"
+                "Autor não encontrado"
             )
 
         book = BookModel(
@@ -160,7 +160,7 @@ class BookService:
 
         if not book:
             raise NotFoundException(
-                "Book not found"
+                "Livro não encontrado"
             )
 
         serialized_book = {
@@ -195,7 +195,7 @@ class BookService:
 
         if not book:
             raise NotFoundException(
-                "Book not found"
+                "Livro não encontrado"
             )
 
         borrowed_books = (
@@ -208,7 +208,7 @@ class BookService:
                 and data.total_copies < borrowed_books
         ):
             raise BusinessRuleException(
-                "total_copies cannot be lower than borrowed books"
+                "total_copies não pode ser menor que livros emprestados"
             )
 
         if data.title:
@@ -260,7 +260,7 @@ class BookService:
 
         if not book:
             raise NotFoundException(
-                "Book not found"
+                "Livro não encontrado"
             )
 
         await self.repository.soft_delete(book)
