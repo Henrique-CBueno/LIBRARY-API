@@ -70,6 +70,32 @@ async def test_should_send_notification_without_loan_id():
 
 
 @pytest.mark.asyncio
+async def test_should_send_notification_with_reservation_id():
+    service, repository = make_service()
+    notification = make_notification(
+        user_id="user-id",
+        reservation_id="reservation-id",
+        notification_type=NotificationType.RESERVATION_CREATED,
+        message="Reservation created",
+    )
+    repository.create.return_value = notification
+
+    response = await service.send_notification(
+        user_id="user-id",
+        reservation_id="reservation-id",
+        notification_type=NotificationType.RESERVATION_CREATED,
+        message="Reservation created",
+    )
+
+    saved_notification = repository.create.await_args.args[0]
+
+    assert response == notification
+    assert saved_notification.loan_id is None
+    assert saved_notification.reservation_id == "reservation-id"
+    assert saved_notification.type == NotificationType.RESERVATION_CREATED
+
+
+@pytest.mark.asyncio
 async def test_should_list_notifications_paginated():
     service, repository = make_service()
     notifications = [
