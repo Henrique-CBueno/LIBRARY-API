@@ -62,3 +62,26 @@ class NotificationService:
             "page": page,
             "size": size,
         }
+
+    async def send_once_per_day(
+            self,
+            user_id: str,
+            notification_type: NotificationType,
+            message: str,
+            loan_id: str | None = None,
+    ):
+        if loan_id:
+            already_sent = await self.repository.exists_for_loan_today(
+                loan_id,
+                notification_type,
+            )
+
+            if already_sent:
+                return None
+
+        return await self.send_notification(
+            user_id=user_id,
+            notification_type=notification_type,
+            message=message,
+            loan_id=loan_id,
+        )

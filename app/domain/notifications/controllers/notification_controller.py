@@ -6,6 +6,7 @@ from app.domain.notifications.schemas.notification_schema import NotificationRes
 from app.domain.notifications.services.notification_service import NotificationService
 from app.infra.database.session import get_db
 from app.infra.padronize.pagination.schemas import PaginatedResponse
+from app.schedule.scheduler import run_due_loan_notification_job
 
 router = APIRouter(
     prefix="/notifications",
@@ -37,3 +38,11 @@ async def list_notifications(
         size=size,
         user_id=user_id,
     )
+
+@router.post(
+    "/jobs/due-loans/run",
+    status_code=204,
+    summary="Run due loan notification job manually",
+)
+async def run_due_loans_job():
+    await run_due_loan_notification_job()

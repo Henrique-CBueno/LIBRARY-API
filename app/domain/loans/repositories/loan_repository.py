@@ -206,3 +206,30 @@ class LoanRepository:
             user_id=user_id,
             status=status,
         )
+
+    async def list_due_on_date(
+            self,
+            due_date,
+    ):
+        query = (
+            select(LoanModel)
+            .where(LoanModel.status == LoanStatus.ACTIVE)
+            .where(func.date(LoanModel.due_date) == due_date)
+        )
+
+        result = await self.db.execute(query)
+
+        return result.scalars().all()
+
+    async def list_overdue_for_notifications(self):
+        now = datetime.utcnow()
+
+        query = (
+            select(LoanModel)
+            .where(LoanModel.status == LoanStatus.ACTIVE)
+            .where(LoanModel.due_date < now)
+        )
+
+        result = await self.db.execute(query)
+
+        return result.scalars().all()

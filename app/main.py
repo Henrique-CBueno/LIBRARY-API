@@ -1,3 +1,5 @@
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI
 from prometheus_fastapi_instrumentator import Instrumentator
 
@@ -20,8 +22,14 @@ from app.domain.books.controllers.book_controller import router as book_router
 from app.domain.authors.controllers.author_controller import router as author_router
 from app.domain.loans.controllers.loan_controller import router as loan_router
 from app.domain.notifications.controllers.notification_controller import router as notifications_router
+from app.schedule.scheduler import start_scheduler
 
 setup_logging()
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    start_scheduler()
+    yield
 
 app = FastAPI(title="Library Management API", version="1.0.0")
 
