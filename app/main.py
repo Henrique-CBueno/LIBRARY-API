@@ -23,6 +23,7 @@ from app.domain.authors.controllers.author_controller import router as author_ro
 from app.domain.loans.controllers.loan_controller import router as loan_router
 from app.domain.notifications.controllers.notification_controller import router as notifications_router
 from app.domain.reservation.controllers.reservation_controller import router as reservation_router
+from app.domain.reports.controllers.report_controller import router as reports_router
 
 from app.schedule.scheduler import start_scheduler
 
@@ -57,6 +58,7 @@ app.include_router(book_router)
 app.include_router(loan_router)
 app.include_router(notifications_router)
 app.include_router(reservation_router)
+app.include_router(reports_router)
 
 Instrumentator().instrument(app).expose(app)
 
