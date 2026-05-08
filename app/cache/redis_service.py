@@ -33,3 +33,12 @@ class CacheService:
         key: str,
     ):
         await redis_client.delete(key)
+    
+    async def delete_pattern(
+        self,
+        pattern: str,
+    ):
+        async for key in redis_client.scan_iter(
+            pattern
+        ):
+            await redis_client.delete(key)

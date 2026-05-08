@@ -31,3 +31,8 @@ class BookResponseSchema(BaseModel):
     model_config = {
         "from_attributes": True
     }
+
+class UpdateBookSchema(BaseModel):
+    title: str | None = None
+    category: str | None = None
+    total_copies: int | None = None

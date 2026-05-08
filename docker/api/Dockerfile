@@ -7,6 +7,6 @@ COPY uv.lock .
 
 RUN pip install uv && uv sync
 
-COPY ../../app .
+COPY . .
 
-CMD ["uv", "run", "uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["sh", "-c", "until uv run alembic upgrade head; do sleep 2; done && uv run uvicorn app.main:app --host 0.0.0.0 --port 8000"]

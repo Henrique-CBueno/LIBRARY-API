@@ -8,6 +8,11 @@ class CreateAuthorSchema(BaseModel):
     biography: str | None = None
 
 
+class UpdateAuthorSchema(BaseModel):
+    name: str | None = None
+    biography: str | None = None
+
+
 class AuthorResponseSchema(BaseModel):
     id: str
     name: str
