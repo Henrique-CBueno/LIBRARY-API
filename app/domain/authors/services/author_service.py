@@ -82,10 +82,10 @@ class AuthorService:
                 "Author not found"
             )
 
-        if data.name:
+        if "name" in data.model_fields_set and data.name:
             author.name = data.name
 
-        if data.biography is not None:
+        if "biography" in data.model_fields_set:
             author.biography = data.biography
 
         updated_author = await self.repository.update(

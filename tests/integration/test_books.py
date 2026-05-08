@@ -1,63 +1,16 @@
 import pytest
 from sqlalchemy import update
 
-from app.cache.redis_service import CacheService
 from app.domain.books.models.book_model import BookModel
-from tests.factories.author_factory import make_author_payload
 from tests.factories.book_factory import make_book_payload
+from tests.helpers.author_helper import create_author
+from tests.helpers.book_helper import create_book
+from tests.helpers.cache_helper import disable_cache
 
 
 @pytest.fixture(autouse=True)
 def disable_book_cache(monkeypatch):
-    async def get(self, key):
-        return None
-
-    async def set(self, key, value, expire=300):
-        return None
-
-    async def delete(self, key):
-        return None
-
-    async def delete_pattern(self, pattern):
-        return None
-
-    monkeypatch.setattr(CacheService, "get", get)
-    monkeypatch.setattr(CacheService, "set", set)
-    monkeypatch.setattr(CacheService, "delete", delete)
-    monkeypatch.setattr(CacheService, "delete_pattern", delete_pattern)
-
-
-async def create_author(client, name="Machado de Assis"):
-    response = await client.post(
-        "/authors",
-        json=make_author_payload(name=name),
-    )
-
-    assert response.status_code == 201
-
-    return response.json()
-
-
-async def create_book(
-    client,
-    author_id,
-    title="Dom Casmurro",
-    category="Romance",
-    total_copies=5,
-):
-    response = await client.post(
-        "/books",
-        json=make_book_payload(
-            title=title,
-            category=category,
-            total_copies=total_copies,
-            author_id=author_id,
-        ),
-    )
-
-    assert response.status_code == 201
-
-    return response.json()
+    disable_cache(monkeypatch)
 
 
 async def test_should_create_book_with_author(client):
