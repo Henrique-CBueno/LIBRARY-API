@@ -3,11 +3,18 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.domain.books.repositories.book_repository import BookRepository
 from app.domain.reservation.models.reservation_model import ReservationStatus
-from app.domain.reservation.repositories.reservation_repository import ReservationRepository
-from app.domain.reservation.schema.reservation_schema import ReservationResponseSchema, CreateReservationSchema, \
-    CancelReservationResponseSchema
+from app.domain.reservation.repositories.reservation_repository import (
+    ReservationRepository,
+)
+from app.domain.reservation.schema.reservation_schema import (
+    CancelReservationResponseSchema,
+    CreateReservationSchema,
+    ReservationResponseSchema,
+)
 from app.domain.reservation.services.reservation_service import ReservationService
 from app.domain.users.repositories.user_repository import UserRepository
+from app.events.bus import EventBus
+from app.events.registrar_handlers import register_event_handlers
 from app.infra.database.session import get_db
 from app.infra.padronize.pagination.schemas import PaginatedResponse
 
@@ -20,10 +27,14 @@ router = APIRouter(
 def get_reservation_service(
     db: AsyncSession = Depends(get_db),
 ):
+    event_bus = EventBus()
+    register_event_handlers(event_bus, db)
+
     return ReservationService(
         repository=ReservationRepository(db),
         user_repository=UserRepository(db),
         book_repository=BookRepository(db),
+        event_bus=event_bus,
     )
 
 

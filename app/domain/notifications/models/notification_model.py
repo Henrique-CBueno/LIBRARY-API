@@ -15,6 +15,8 @@ class NotificationType(str, enum.Enum):
     LOAN_DUE_SOON = "LOAN_DUE_SOON"
     LOAN_DUE_TODAY = "LOAN_DUE_TODAY"
     LOAN_OVERDUE = "LOAN_OVERDUE"
+    RESERVATION_CREATED = "RESERVATION_CREATED"
+    RESERVATION_CANCELLED = "RESERVATION_CANCELLED"
 
 
 class NotificationStatus(str, enum.Enum):
@@ -40,6 +42,12 @@ class NotificationModel(Base):
     loan_id: Mapped[str | None] = mapped_column(
         String,
         ForeignKey("loans.id"),
+        nullable=True,
+    )
+
+    reservation_id: Mapped[str | None] = mapped_column(
+        String,
+        ForeignKey("reservations.id"),
         nullable=True,
     )
 

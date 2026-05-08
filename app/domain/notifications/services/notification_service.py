@@ -21,10 +21,12 @@ class NotificationService:
         notification_type: NotificationType,
         message: str,
         loan_id: str | None = None,
+        reservation_id: str | None = None,
     ):
         notification = NotificationModel(
             user_id=user_id,
             loan_id=loan_id,
+            reservation_id=reservation_id,
             type=notification_type,
             status=NotificationStatus.SENT,
             channel="EMAIL_FAKE",
@@ -39,6 +41,7 @@ class NotificationService:
             notification_id=str(created.id),
             user_id=str(user_id),
             loan_id=str(loan_id) if loan_id else None,
+            reservation_id=str(reservation_id) if reservation_id else None,
             type=notification_type,
         )
 
@@ -69,6 +72,7 @@ class NotificationService:
             notification_type: NotificationType,
             message: str,
             loan_id: str | None = None,
+            reservation_id: str | None = None,
     ):
         if loan_id:
             already_sent = await self.repository.exists_for_loan_today(
@@ -84,4 +88,5 @@ class NotificationService:
             notification_type=notification_type,
             message=message,
             loan_id=loan_id,
+            reservation_id=reservation_id,
         )

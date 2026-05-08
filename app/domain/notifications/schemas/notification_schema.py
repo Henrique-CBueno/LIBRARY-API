@@ -9,6 +9,7 @@ class NotificationResponseSchema(BaseModel):
     id: str
     user_id: str
     loan_id: str | None
+    reservation_id: str | None
     type: NotificationType
     status: NotificationStatus
     channel: str

@@ -7,6 +7,11 @@ from app.domain.reservation.models.reservation_model import ReservationModel, Re
 from app.domain.reservation.repositories.reservation_repository import ReservationRepository
 from app.domain.reservation.schema.reservation_schema import CreateReservationSchema
 from app.domain.users.repositories.user_repository import UserRepository
+from app.events.bus import EventBus
+from app.events.reservations.events import (
+    ReservationCancelledEvent,
+    ReservationCreatedEvent,
+)
 from app.exceptions.base import NotFoundException, BusinessRuleException
 
 logger = structlog.get_logger()
@@ -18,10 +23,12 @@ class ReservationService:
         repository: ReservationRepository,
         user_repository: UserRepository,
         book_repository: BookRepository,
+        event_bus: EventBus,
     ):
         self.repository = repository
         self.user_repository = user_repository
         self.book_repository = book_repository
+        self.event_bus = event_bus
 
     async def create_reservation(self, data: CreateReservationSchema):
         user = await self.user_repository.find_by_id(data.user_id)
@@ -64,6 +71,15 @@ class ReservationService:
             book_id=str(created.book_id),
         )
 
+        await self.event_bus.publish(
+            ReservationCreatedEvent(
+                occurred_at=datetime.utcnow(),
+                reservation_id=created.id,
+                user_id=created.user_id,
+                book_id=created.book_id,
+            )
+        )
+
         return created
 
     async def cancel_reservation(self, reservation_id: str):
@@ -85,6 +101,15 @@ class ReservationService:
         logger.info(
             "reservation_cancelled",
             reservation_id=str(updated.id),
+        )
+
+        await self.event_bus.publish(
+            ReservationCancelledEvent(
+                occurred_at=datetime.utcnow(),
+                reservation_id=updated.id,
+                user_id=updated.user_id,
+                book_id=updated.book_id,
+            )
         )
 
         return {

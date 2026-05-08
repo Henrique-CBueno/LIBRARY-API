@@ -9,6 +9,14 @@ from app.events.loans.handlers.loan_notification_handler import (
     LoanReturnedNotificationHandler,
     LoanCancelledNotificationHandler,
 )
+from app.events.reservations.events import (
+    ReservationCancelledEvent,
+    ReservationCreatedEvent,
+)
+from app.events.reservations.handlers.reservation_notification_handler import (
+    ReservationCancelledNotificationHandler,
+    ReservationCreatedNotificationHandler,
+)
 
 
 def register_event_handlers(
@@ -36,6 +44,20 @@ def register_event_handlers(
     event_bus.subscribe(
         LoanCancelledEvent,
         LoanCancelledNotificationHandler(
+            notification_service
+        ),
+    )
+
+    event_bus.subscribe(
+        ReservationCreatedEvent,
+        ReservationCreatedNotificationHandler(
+            notification_service
+        ),
+    )
+
+    event_bus.subscribe(
+        ReservationCancelledEvent,
+        ReservationCancelledNotificationHandler(
             notification_service
         ),
     )
