@@ -6,7 +6,6 @@ from app.domain.reservation.models.reservation_model import ReservationStatus
 
 
 class CreateReservationSchema(BaseModel):
-    user_id: str
     book_id: str
 
 

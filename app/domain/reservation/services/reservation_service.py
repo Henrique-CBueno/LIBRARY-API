@@ -31,8 +31,8 @@ class ReservationService:
         self.book_repository = book_repository
         self.event_bus = event_bus
 
-    async def create_reservation(self, data: CreateReservationSchema):
-        user = await self.user_repository.find_by_id(data.user_id)
+    async def create_reservation(self, data: CreateReservationSchema, user_id: str):
+        user = await self.user_repository.find_by_id(user_id)
 
         if not user:
             raise NotFoundException("User not found")
@@ -48,7 +48,7 @@ class ReservationService:
             )
 
         existing_reservation = await self.repository.find_active_by_user_and_book(
-            data.user_id,
+            user_id,
             data.book_id,
         )
 
@@ -58,7 +58,7 @@ class ReservationService:
             )
 
         reservation = ReservationModel(
-            user_id=data.user_id,
+            user_id=user_id,
             book_id=data.book_id,
             status=ReservationStatus.ACTIVE,
         )

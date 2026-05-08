@@ -89,6 +89,7 @@ async def me(
 async def get_user(
     user_id: str,
     service: UserService = Depends(get_user_service),
+    _current_admin=Depends(get_current_admin),
 ):
     return await service.get_by_id(user_id)
 
@@ -101,6 +102,7 @@ async def update_user(
     user_id: str,
     data: UpdateUserSchema,
     service: UserService = Depends(get_user_service),
+    _current_admin=Depends(get_current_admin),
 ):
     return await service.update_user(
         user_id,
@@ -115,6 +117,7 @@ async def update_user(
 async def delete_user(
     user_id: str,
     service: UserService = Depends(get_user_service),
+    _current_admin=Depends(get_current_admin),
 ):
     await service.delete_user(user_id)
 

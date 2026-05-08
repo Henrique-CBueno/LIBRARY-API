@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.config.security.dependencies import get_current_admin
 from app.domain.notifications.repositories.notification_repository import NotificationRepository
 from app.domain.notifications.schemas.notification_schema import NotificationResponseSchema
 from app.domain.notifications.services.notification_service import NotificationService
@@ -32,6 +33,7 @@ async def list_notifications(
     size: int = Query(10, ge=1, le=100),
     user_id: str | None = Query(None),
     service: NotificationService = Depends(get_notification_service),
+    _current_admin=Depends(get_current_admin)
 ):
     return await service.list_paginated(
         page=page,
@@ -44,5 +46,7 @@ async def list_notifications(
     status_code=204,
     summary="Run due loan notification job manually",
 )
-async def run_due_loans_job():
+async def run_due_loans_job(
+        _current_admin=Depends(get_current_admin)
+):
     await run_due_loan_notification_job()

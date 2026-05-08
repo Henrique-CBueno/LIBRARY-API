@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends, Query, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.config.security.dependencies import get_current_user
 from app.domain.books.repositories.book_repository import BookRepository
 from app.domain.reservation.models.reservation_model import ReservationStatus
 from app.domain.reservation.repositories.reservation_repository import (
@@ -12,9 +13,12 @@ from app.domain.reservation.schema.reservation_schema import (
     ReservationResponseSchema,
 )
 from app.domain.reservation.services.reservation_service import ReservationService
+from app.domain.users.enums.user_role import UserRole
+from app.domain.users.models.user_model import UserModel
 from app.domain.users.repositories.user_repository import UserRepository
 from app.events.bus import EventBus
 from app.events.registrar_handlers import register_event_handlers
+from app.exceptions.base import UnauthorizedException
 from app.infra.database.session import get_db
 from app.infra.middleware.rate_limit import limiter
 from app.infra.padronize.pagination.schemas import PaginatedResponse
@@ -49,9 +53,11 @@ def get_reservation_service(
 async def create_reservation(
     request: Request,
     data: CreateReservationSchema,
+    user: UserModel = Depends(get_current_user),
     service: ReservationService = Depends(get_reservation_service),
 ):
-    return await service.create_reservation(data)
+
+    return await service.create_reservation(data, user.id)
 
 
 @router.get(
@@ -66,7 +72,12 @@ async def list_reservations(
     book_id: str | None = Query(None),
     status: ReservationStatus | None = Query(None),
     service: ReservationService = Depends(get_reservation_service),
+    user: UserModel = Depends(get_current_user),
 ):
+    if user.role != UserRole.ADMIN:
+        if user_id != user.id:
+            raise UnauthorizedException("You can only list your reservations")
+
     return await service.list_paginated(
         page=page,
         size=size,
@@ -84,8 +95,15 @@ async def list_reservations(
 async def get_reservation(
     reservation_id: str,
     service: ReservationService = Depends(get_reservation_service),
+    user: UserModel = Depends(get_current_user),
 ):
-    return await service.get_reservation(reservation_id)
+    reservation = await service.get_reservation(reservation_id)
+
+    if user.role != UserRole.ADMIN:
+        if str(reservation.user_id) != str(user.id):
+            raise UnauthorizedException("You can only list your reservations")
+
+    return reservation
 
 
 @router.post(
@@ -96,5 +114,12 @@ async def get_reservation(
 async def cancel_reservation(
     reservation_id: str,
     service: ReservationService = Depends(get_reservation_service),
+    user: UserModel = Depends(get_current_user),
 ):
+    reservation = await service.get_reservation(reservation_id)
+
+    if user.role != UserRole.ADMIN:
+        if str(reservation.user_id) != str(user.id):
+            raise UnauthorizedException("You can only cancel your reservations")
+
     return await service.cancel_reservation(reservation_id)

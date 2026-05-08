@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.cache.redis_service import CacheService
+from app.config.security.dependencies import get_current_admin
 from app.domain.authors.repositories.author_repository import AuthorRepository
 from app.domain.books.repositories.book_repository import BookRepository
 from app.domain.books.schemas.book_schema import BookResponseSchema, CreateBookSchema, UpdateBookSchema
@@ -41,6 +42,7 @@ async def create_book(
     service: BookService = Depends(
         get_book_service
     ),
+    _current_admin=Depends(get_current_admin),
 ):
     return await service.create_book(data)
 
@@ -96,6 +98,7 @@ async def update_book(
     service: BookService = Depends(
         get_book_service
     ),
+    _current_admin=Depends(get_current_admin),
 ):
     return await service.update_book(
         book_id,
@@ -112,5 +115,6 @@ async def delete_book(
     service: BookService = Depends(
         get_book_service
     ),
+    _current_admin=Depends(get_current_admin),
 ):
     await service.delete_book(book_id)

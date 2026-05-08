@@ -3,6 +3,7 @@ from fastapi.params import Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.cache.redis_service import CacheService
+from app.config.security.dependencies import get_current_admin, get_current_user
 from app.domain.loans.models.loan_model import LoanStatus
 from app.domain.loans.repositories.loan_repository import LoanRepository
 from app.domain.loans.schemas.loan_schema import (
@@ -16,9 +17,12 @@ from app.domain.loans.schemas.loan_schema import (
 from app.domain.loans.services.fine_calculator import FineCalculator
 from app.domain.loans.services.loan_service import LoanService
 from app.domain.reservation.repositories.reservation_repository import ReservationRepository
+from app.domain.users.enums.user_role import UserRole
+from app.domain.users.models.user_model import UserModel
 from app.domain.users.repositories.user_repository import UserRepository
 from app.events.bus import EventBus
 from app.events.registrar_handlers import register_event_handlers
+from app.exceptions.base import UnauthorizedException
 from app.infra.database.session import get_db
 from app.infra.middleware.rate_limit import limiter
 from app.infra.padronize.pagination.schemas import PaginatedResponse
@@ -45,6 +49,16 @@ def get_loan_service(
     )
 
 
+def user_is_not_admin_and_does_not_own_loan(
+    user: UserModel,
+    loan_user_id: str,
+):
+    return (
+        user.role != UserRole.ADMIN.value
+        and loan_user_id != str(user.id)
+    )
+
+
 @router.get(
     "",
     response_model=PaginatedResponse[LoanResponseSchema],
@@ -58,6 +72,7 @@ async def list_loans(
     status: LoanStatus | None = Query(None),
     overdue: bool | None = Query(None),
     service: LoanService = Depends(get_loan_service),
+    _current_admin=Depends(get_current_admin),
 ):
     return await service.list_paginated(
         page=page,
@@ -79,7 +94,11 @@ async def list_loans_by_user(
     size: int = Query(10, ge=1, le=100),
     status: LoanStatus | None = Query(None),
     service: LoanService = Depends(get_loan_service),
+    user=Depends(get_current_user),
 ):
+    if user.role != UserRole.ADMIN.value and user_id != str(user.id):
+        raise UnauthorizedException("You can only access your own loans")
+
     return await service.list_by_user_paginated(
         user_id=user_id,
         page=page,
@@ -96,6 +115,7 @@ async def update_loan(
     loan_id: str,
     data: UpdateLoanSchema,
     service: LoanService = Depends(get_loan_service),
+    _current_admin=Depends(get_current_admin),
 ):
     return await service.update_loan(
         loan_id,
@@ -112,7 +132,13 @@ async def cancel_loan(
     request: Request,
     loan_id: str,
     service: LoanService = Depends(get_loan_service),
+    user: UserModel = Depends(get_current_user),
 ):
+    loan = await service.get_loan(loan_id)
+
+    if user_is_not_admin_and_does_not_own_loan(user, loan["user_id"]):
+        raise UnauthorizedException("You can only cancel your own loans")
+
     return await service.cancel_loan(loan_id)
 
 @router.post(
@@ -123,7 +149,13 @@ async def cancel_loan(
 async def pay_loan_fine(
     loan_id: str,
     service: LoanService = Depends(get_loan_service),
+    user=Depends(get_current_user),
 ):
+    loan = await service.get_loan(loan_id)
+
+    if user_is_not_admin_and_does_not_own_loan(user, loan["user_id"]):
+        raise UnauthorizedException("You can only pay your own loans")
+
     return await service.pay_fine(loan_id)
 
 @router.post(
@@ -137,6 +169,7 @@ async def create_loan(
     request: Request,
     data: CreateLoanSchema,
     service: LoanService = Depends(get_loan_service),
+    _current_admin=Depends(get_current_admin),
 ):
     return await service.create_loan(data)
 
@@ -150,6 +183,7 @@ async def list_active_loans(
     page: int = Query(1, ge=1),
     size: int = Query(10, ge=1, le=100),
     service: LoanService = Depends(get_loan_service),
+    _current_admin=Depends(get_current_admin),
 ):
     return await service.list_active_paginated(
         page=page,
@@ -166,6 +200,7 @@ async def list_overdue_loans(
     page: int = Query(1, ge=1),
     size: int = Query(10, ge=1, le=100),
     service: LoanService = Depends(get_loan_service),
+    _current_admin=Depends(get_current_admin),
 ):
     return await service.list_overdue_paginated(
         page=page,
@@ -181,7 +216,13 @@ async def list_overdue_loans(
 async def get_loan(
     loan_id: str,
     service: LoanService = Depends(get_loan_service),
+    user=Depends(get_current_user),
 ):
+    loan = await service.get_loan(loan_id)
+
+    if user_is_not_admin_and_does_not_own_loan(user, loan["user_id"]):
+        raise UnauthorizedException("You can only view your own loans")
+
     return await service.get_loan(loan_id)
 
 
@@ -195,7 +236,13 @@ async def return_loan(
     request: Request,
     loan_id: str,
     service: LoanService = Depends(get_loan_service),
+    user=Depends(get_current_user),
 ):
+    loan = await service.get_loan(loan_id)
+
+    if user_is_not_admin_and_does_not_own_loan(user, loan["user_id"]):
+        raise UnauthorizedException("You can only return your own loans")
+
     return await service.return_loan(loan_id)
 
 @router.post(
@@ -208,6 +255,12 @@ async def renew_loan(
     request: Request,
     loan_id: str,
     service: LoanService = Depends(get_loan_service),
+    user=Depends(get_current_user),
 ):
+    loan = await service.get_loan(loan_id)
+
+    if user_is_not_admin_and_does_not_own_loan(user, loan["user_id"]):
+        raise UnauthorizedException("You can only renew your own loans")
+
     return await service.renew_loan(loan_id)
 
