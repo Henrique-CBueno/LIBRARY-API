@@ -5,6 +5,7 @@ from sqlalchemy import select
 
 from app.domain.loans.models.loan_model import LoanModel
 from tests.helpers.book_helper import create_book
+from tests.helpers.auth_helper import auth_headers_for_user
 from tests.helpers.cache_helper import disable_cache
 from tests.helpers.loan_helper import create_loan
 from tests.helpers.user_helper import create_user
@@ -835,6 +836,7 @@ async def test_should_not_renew_when_book_has_active_reservation(
             "user_id": waiting_user["id"],
             "book_id": book["id"],
         },
+        headers=await auth_headers_for_user(client, waiting_user["email"]),
     )
 
     assert reservation_response.status_code == 201

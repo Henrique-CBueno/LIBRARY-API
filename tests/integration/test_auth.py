@@ -33,8 +33,8 @@ async def test_should_not_access_protected_route_with_invalid_token(
 
 
 async def test_should_not_access_protected_route_without_token(
-    client,
+    anonymous_client,
 ):
-    response = await client.get("/users/me")
+    response = await anonymous_client.get("/users/me")
 
     assert response.status_code in [401, 403]

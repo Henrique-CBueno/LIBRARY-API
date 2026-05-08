@@ -14,3 +14,17 @@ async def authenticate_user(
     body = response.json()
 
     return body["access_token"]
+
+
+async def auth_headers_for_user(
+    client,
+    email: str,
+    password: str = "123456",
+):
+    token = await authenticate_user(
+        client,
+        email,
+        password,
+    )
+
+    return {"Authorization": f"Bearer {token}"}

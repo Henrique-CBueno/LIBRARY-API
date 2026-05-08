@@ -52,6 +52,7 @@ async def list_users(
     page: int = Query(1, ge=1),
     size: int = Query(10, ge=1, le=100),
     service: UserService = Depends(get_user_service),
+    _current_admin=Depends(get_current_admin),
 ):
     return await service.list_users_paginated(
         page,

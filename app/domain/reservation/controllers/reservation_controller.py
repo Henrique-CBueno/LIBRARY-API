@@ -74,9 +74,10 @@ async def list_reservations(
     service: ReservationService = Depends(get_reservation_service),
     user: UserModel = Depends(get_current_user),
 ):
-    if user.role != UserRole.ADMIN:
-        if user_id != user.id:
+    if user.role != UserRole.ADMIN.value:
+        if user_id is not None and user_id != str(user.id):
             raise UnauthorizedException("You can only list your reservations")
+        user_id = str(user.id)
 
     return await service.list_paginated(
         page=page,
@@ -99,7 +100,7 @@ async def get_reservation(
 ):
     reservation = await service.get_reservation(reservation_id)
 
-    if user.role != UserRole.ADMIN:
+    if user.role != UserRole.ADMIN.value:
         if str(reservation.user_id) != str(user.id):
             raise UnauthorizedException("You can only list your reservations")
 
@@ -118,7 +119,7 @@ async def cancel_reservation(
 ):
     reservation = await service.get_reservation(reservation_id)
 
-    if user.role != UserRole.ADMIN:
+    if user.role != UserRole.ADMIN.value:
         if str(reservation.user_id) != str(user.id):
             raise UnauthorizedException("You can only cancel your reservations")
 

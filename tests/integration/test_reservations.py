@@ -1,6 +1,7 @@
 import pytest
 
 from tests.helpers.book_helper import create_book
+from tests.helpers.auth_helper import auth_headers_for_user
 from tests.helpers.cache_helper import disable_cache
 from tests.helpers.loan_helper import create_loan
 from tests.helpers.user_helper import create_user
@@ -33,12 +34,14 @@ async def create_reservation(
     user_id: str | None = None,
     book_id: str | None = None,
     isbn: str = "reservation-helper-book",
+    headers: dict | None = None,
 ):
     waiting_user = None
 
     if not user_id:
         waiting_user = await create_user(client)
         user_id = waiting_user["id"]
+        headers = await auth_headers_for_user(client, waiting_user["email"])
 
     if not book_id:
         book = await create_unavailable_book(client, isbn)
@@ -50,6 +53,7 @@ async def create_reservation(
             "user_id": user_id,
             "book_id": book_id,
         },
+        headers=headers,
     )
 
     assert response.status_code == 201
@@ -70,6 +74,7 @@ async def test_should_create_reservation_when_book_is_unavailable(client):
             "user_id": waiting_user["id"],
             "book_id": book["id"],
         },
+        headers=await auth_headers_for_user(client, waiting_user["email"]),
     )
 
     assert response.status_code == 201
@@ -96,6 +101,7 @@ async def test_should_create_notification_when_reservation_is_created(client):
             "user_id": waiting_user["id"],
             "book_id": book["id"],
         },
+        headers=await auth_headers_for_user(client, waiting_user["email"]),
     )
 
     assert response.status_code == 201
@@ -132,6 +138,7 @@ async def test_should_not_create_reservation_when_book_is_available(client):
             "user_id": user["id"],
             "book_id": book["id"],
         },
+        headers=await auth_headers_for_user(client, user["email"]),
     )
 
     assert response.status_code == 400
@@ -144,10 +151,11 @@ async def test_should_not_create_reservation_when_book_is_available(client):
     )
 
 
-async def test_should_not_create_reservation_when_user_not_found(client):
+async def test_should_create_reservation_for_authenticated_user(client):
+    user = await create_user(client)
     book = await create_unavailable_book(
         client,
-        isbn="reservation-missing-user-book",
+        isbn="reservation-authenticated-user-book",
     )
 
     response = await client.post(
@@ -156,13 +164,14 @@ async def test_should_not_create_reservation_when_user_not_found(client):
             "user_id": "00000000-0000-0000-0000-000000000000",
             "book_id": book["id"],
         },
+        headers=await auth_headers_for_user(client, user["email"]),
     )
 
-    assert response.status_code == 404
+    assert response.status_code == 201
 
     body = response.json()
 
-    assert body["error"]["message"] == "User not found"
+    assert body["user_id"] == user["id"]
 
 
 async def test_should_not_create_reservation_when_book_not_found(client):
@@ -174,6 +183,7 @@ async def test_should_not_create_reservation_when_book_not_found(client):
             "user_id": user["id"],
             "book_id": "00000000-0000-0000-0000-000000000000",
         },
+        headers=await auth_headers_for_user(client, user["email"]),
     )
 
     assert response.status_code == 404
@@ -197,10 +207,12 @@ async def test_should_not_create_duplicate_active_reservation(client):
     first_response = await client.post(
         "/reservations",
         json=payload,
+        headers=await auth_headers_for_user(client, waiting_user["email"]),
     )
     second_response = await client.post(
         "/reservations",
         json=payload,
+        headers=await auth_headers_for_user(client, waiting_user["email"]),
     )
 
     assert first_response.status_code == 201
@@ -275,6 +287,7 @@ async def test_should_filter_reservations_by_user(client):
         client,
         user_id=waiting_user["id"],
         book_id=book["id"],
+        headers=await auth_headers_for_user(client, waiting_user["email"]),
     )
 
     response = await client.get(
@@ -301,6 +314,7 @@ async def test_should_filter_reservations_by_book(client):
         client,
         user_id=waiting_user["id"],
         book_id=book["id"],
+        headers=await auth_headers_for_user(client, waiting_user["email"]),
     )
 
     response = await client.get(
@@ -329,6 +343,10 @@ async def test_should_filter_reservations_by_status(client):
 
     await client.post(
         f"/reservations/{cancelled_reservation['id']}/cancel",
+        headers=await auth_headers_for_user(
+            client,
+            cancelled_reservation["user"]["email"],
+        ) if "user" in cancelled_reservation else None,
     )
 
     response = await client.get(
@@ -378,6 +396,7 @@ async def test_should_create_notification_when_reservation_is_cancelled(client):
         client,
         user_id=waiting_user["id"],
         book_id=book["id"],
+        headers=await auth_headers_for_user(client, waiting_user["email"]),
     )
 
     response = await client.post(
@@ -439,6 +458,7 @@ async def test_should_allow_new_reservation_after_cancelled_previous_one(
         client,
         user_id=waiting_user["id"],
         book_id=book["id"],
+        headers=await auth_headers_for_user(client, waiting_user["email"]),
     )
 
     cancel_response = await client.post(
@@ -451,6 +471,7 @@ async def test_should_allow_new_reservation_after_cancelled_previous_one(
             "user_id": waiting_user["id"],
             "book_id": book["id"],
         },
+        headers=await auth_headers_for_user(client, waiting_user["email"]),
     )
 
     assert cancel_response.status_code == 200

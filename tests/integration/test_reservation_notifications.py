@@ -3,6 +3,7 @@ import pytest
 from tests.helpers.cache_helper import disable_cache
 from tests.helpers.book_helper import create_book
 from tests.helpers.loan_helper import create_loan
+from tests.helpers.auth_helper import auth_headers_for_user
 from tests.helpers.user_helper import create_user
 
 
@@ -32,6 +33,7 @@ async def test_should_notify_when_reservation_is_created(client):
             "user_id": waiting_user["id"],
             "book_id": book["id"],
         },
+        headers=await auth_headers_for_user(client, waiting_user["email"]),
     )
 
     assert response.status_code == 201
@@ -74,6 +76,7 @@ async def test_should_notify_when_reservation_is_cancelled(client):
             "user_id": waiting_user["id"],
             "book_id": book["id"],
         },
+        headers=await auth_headers_for_user(client, waiting_user["email"]),
     )
 
     reservation_id = create_response.json()["id"]

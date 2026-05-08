@@ -57,9 +57,9 @@ async def test_should_create_reservation_for_unavailable_book():
 
     response = await service.create_reservation(
         CreateReservationSchema(
-            user_id=user.id,
             book_id=book.id,
-        )
+        ),
+        user.id,
     )
 
     saved_reservation = repository.create.await_args.args[0]
@@ -81,9 +81,9 @@ async def test_should_not_create_reservation_when_user_not_found():
     with pytest.raises(NotFoundException):
         await service.create_reservation(
             CreateReservationSchema(
-                user_id="missing-user",
                 book_id="book-id",
-            )
+            ),
+            "missing-user",
         )
 
     repository.create.assert_not_awaited()
@@ -105,9 +105,9 @@ async def test_should_not_create_reservation_when_book_not_found():
     with pytest.raises(NotFoundException):
         await service.create_reservation(
             CreateReservationSchema(
-                user_id="user-id",
                 book_id="missing-book",
-            )
+            ),
+            "user-id",
         )
 
     repository.create.assert_not_awaited()
@@ -129,9 +129,9 @@ async def test_should_not_create_reservation_when_book_is_available():
     with pytest.raises(BusinessRuleException):
         await service.create_reservation(
             CreateReservationSchema(
-                user_id="user-id",
                 book_id="book-id",
-            )
+            ),
+            "user-id",
         )
 
     repository.find_active_by_user_and_book.assert_not_awaited()
@@ -160,9 +160,9 @@ async def test_should_not_create_duplicate_active_reservation():
     with pytest.raises(BusinessRuleException):
         await service.create_reservation(
             CreateReservationSchema(
-                user_id=user.id,
                 book_id=book.id,
-            )
+            ),
+            user.id,
         )
 
     repository.create.assert_not_awaited()
