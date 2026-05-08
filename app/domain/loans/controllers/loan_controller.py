@@ -15,6 +15,7 @@ from app.domain.loans.schemas.loan_schema import (
 )
 from app.domain.loans.services.fine_calculator import FineCalculator
 from app.domain.loans.services.loan_service import LoanService
+from app.domain.reservation.repositories.reservation_repository import ReservationRepository
 from app.domain.users.repositories.user_repository import UserRepository
 from app.events.bus import EventBus
 from app.events.registrar_handlers import register_event_handlers
@@ -36,6 +37,7 @@ def get_loan_service(
     return LoanService(
         repository=LoanRepository(db),
         user_repository=UserRepository(db),
+        reservation_repository=ReservationRepository(db),
         cache_service=CacheService(),
         fine_calculator=FineCalculator(),
         event_bus=event_bus,

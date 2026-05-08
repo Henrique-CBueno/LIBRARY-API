@@ -7,6 +7,7 @@ from app.domain.loans.models.loan_model import LoanModel, LoanStatus
 from app.domain.loans.repositories.loan_repository import LoanRepository
 from app.domain.loans.schemas.loan_schema import CreateLoanSchema, UpdateLoanSchema
 from app.domain.loans.services.fine_calculator import FineCalculator
+from app.domain.reservation.repositories.reservation_repository import ReservationRepository
 from app.domain.users.repositories.user_repository import UserRepository
 from app.events.bus import EventBus
 from app.events.loans.events import LoanCreatedEvent, LoanReturnedEvent, LoanCancelledEvent
@@ -30,12 +31,14 @@ class LoanService:
         self,
         repository: LoanRepository,
         user_repository: UserRepository,
+        reservation_repository: ReservationRepository,
         cache_service: CacheService,
         fine_calculator: FineCalculator,
         event_bus: EventBus,
     ):
         self.repository = repository
         self.user_repository = user_repository
+        self.reservation_repository = reservation_repository
         self.cache_service = cache_service
         self.fine_calculator = fine_calculator
         self.event_bus = event_bus
@@ -640,6 +643,17 @@ class LoanService:
         if loan.renewal_count >= self.MAX_RENEWALS:
             raise BusinessRuleException(
                 "Loan has reached the maximum number of renewals"
+            )
+
+        has_active_reservation = (
+            await self.reservation_repository.exists_active_for_book(
+                loan.book_id,
+            )
+        )
+
+        if has_active_reservation:
+            raise BusinessRuleException(
+                "Loan cannot be renewed because the book has active reservations"
             )
 
         loan.due_date = loan.due_date + timedelta(

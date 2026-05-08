@@ -803,3 +803,51 @@ async def test_should_not_renew_more_than_maximum_allowed(
         body["error"]["message"]
         == "Loan has reached the maximum number of renewals"
     )
+
+
+async def test_should_not_renew_when_book_has_active_reservation(
+    client,
+):
+    borrower = await create_user(client)
+    waiting_user = await create_user(client)
+
+    book = await create_book(
+        client,
+        isbn="reserved-renew-book",
+        total_copies=1,
+    )
+
+    loan_response = await client.post(
+        "/loans",
+        json={
+            "user_id": borrower["id"],
+            "book_id": book["id"],
+        },
+    )
+
+    assert loan_response.status_code == 201
+
+    loan = loan_response.json()
+
+    reservation_response = await client.post(
+        "/reservations",
+        json={
+            "user_id": waiting_user["id"],
+            "book_id": book["id"],
+        },
+    )
+
+    assert reservation_response.status_code == 201
+
+    renew_response = await client.post(
+        f"/loans/{loan['id']}/renew",
+    )
+
+    assert renew_response.status_code == 400
+
+    body = renew_response.json()
+
+    assert (
+        body["error"]["message"]
+        == "Loan cannot be renewed because the book has active reservations"
+    )
