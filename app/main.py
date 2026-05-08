@@ -3,11 +3,14 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.params import Depends
 from prometheus_fastapi_instrumentator import Instrumentator
+from slowapi.errors import RateLimitExceeded
+from slowapi.middleware import SlowAPIMiddleware
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config.observability.health import check_postgres, check_redis
 from app.infra.database.session import get_db
 from app.infra.middleware.logging import LoggingMiddleware
+from app.infra.middleware.rate_limit import limiter
 from app.infra.middleware.request_id import RequestIDMiddleware
 from app.infra.observability.logging import setup_logging
 from app.exceptions.base import (
@@ -29,6 +32,10 @@ from app.domain.notifications.controllers.notification_controller import router 
 from app.domain.reservation.controllers.reservation_controller import router as reservation_router
 from app.domain.reports.controllers.report_controller import router as reports_router
 
+from slowapi.errors import RateLimitExceeded
+from slowapi.middleware import SlowAPIMiddleware
+from slowapi import _rate_limit_exceeded_handler
+
 from app.schedule.scheduler import start_scheduler
 
 setup_logging()
@@ -39,6 +46,15 @@ async def lifespan(app: FastAPI):
     yield
 
 app = FastAPI(title="Library Management API", version="1.0.0")
+
+app.state.limiter = limiter
+
+app.add_exception_handler(
+    RateLimitExceeded,
+    _rate_limit_exceeded_handler,
+)
+
+app.add_middleware(SlowAPIMiddleware)
 
 app.add_middleware(RequestIDMiddleware)
 app.add_middleware(LoggingMiddleware)

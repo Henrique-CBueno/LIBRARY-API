@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, Query, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.domain.books.repositories.book_repository import BookRepository
@@ -16,6 +16,7 @@ from app.domain.users.repositories.user_repository import UserRepository
 from app.events.bus import EventBus
 from app.events.registrar_handlers import register_event_handlers
 from app.infra.database.session import get_db
+from app.infra.middleware.rate_limit import limiter
 from app.infra.padronize.pagination.schemas import PaginatedResponse
 
 router = APIRouter(
@@ -44,7 +45,9 @@ def get_reservation_service(
     status_code=201,
     summary="Create reservation",
 )
+@limiter.limit("20/minute")
 async def create_reservation(
+    request: Request,
     data: CreateReservationSchema,
     service: ReservationService = Depends(get_reservation_service),
 ):

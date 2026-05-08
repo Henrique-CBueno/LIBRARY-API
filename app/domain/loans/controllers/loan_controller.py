@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Request
 from fastapi.params import Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -20,6 +20,7 @@ from app.domain.users.repositories.user_repository import UserRepository
 from app.events.bus import EventBus
 from app.events.registrar_handlers import register_event_handlers
 from app.infra.database.session import get_db
+from app.infra.middleware.rate_limit import limiter
 from app.infra.padronize.pagination.schemas import PaginatedResponse
 
 router = APIRouter(
@@ -106,7 +107,9 @@ async def update_loan(
     response_model=CancelLoanResponseSchema,
     summary="Cancel loan",
 )
+@limiter.limit("30/minute")
 async def cancel_loan(
+    request: Request,
     loan_id: str,
     service: LoanService = Depends(get_loan_service),
 ):
@@ -129,7 +132,9 @@ async def pay_loan_fine(
     status_code=201,
     summary="Create loan",
 )
+@limiter.limit("20/minute")
 async def create_loan(
+    request: Request,
     data: CreateLoanSchema,
     service: LoanService = Depends(get_loan_service),
 ):
@@ -185,7 +190,9 @@ async def get_loan(
     response_model=ReturnLoanResponseSchema,
     summary="Return loan",
 )
+@limiter.limit("30/minute")
 async def return_loan(
+    request: Request,
     loan_id: str,
     service: LoanService = Depends(get_loan_service),
 ):
@@ -196,7 +203,9 @@ async def return_loan(
     response_model=RenewLoanResponseSchema,
     summary="Renew loan",
 )
+@limiter.limit("30/minute")
 async def renew_loan(
+    request: Request,
     loan_id: str,
     service: LoanService = Depends(get_loan_service),
 ):

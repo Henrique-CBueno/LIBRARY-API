@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, Query, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config.security.dependencies import get_current_user
@@ -12,6 +12,7 @@ from app.domain.users.schemas.user_schema import (
 )
 from app.domain.users.services.user_service import UserService
 from app.infra.database.session import get_db
+from app.infra.middleware.rate_limit import limiter
 from app.infra.padronize.pagination.schemas import PaginatedResponse
 
 router = APIRouter(
@@ -33,7 +34,9 @@ def get_user_service(
     response_model=UserResponseSchema,
     status_code=201,
 )
+@limiter.limit("10/minute")
 async def create_user(
+    request: Request,
     data: CreateUserSchema,
     service: UserService = Depends(get_user_service),
 ):
@@ -59,7 +62,9 @@ async def list_users(
     "/login",
     response_model=TokenResponseSchema,
 )
+@limiter.limit("5/minute")
 async def login(
+    request: Request,
     data: LoginSchema,
     service: UserService = Depends(get_user_service),
 ):
