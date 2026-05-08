@@ -21,6 +21,7 @@ def make_service():
     repository = AsyncMock()
     repository.db = AsyncMock()
     user_repository = AsyncMock()
+    reservation_repository = AsyncMock()
     cache_service = AsyncMock()
     cache_service.get.return_value = None
     fine_calculator = FineCalculator()
@@ -30,6 +31,7 @@ def make_service():
         LoanService(
             repository=repository,
             user_repository=user_repository,
+            reservation_repository=reservation_repository,
             cache_service=cache_service,
             fine_calculator=fine_calculator,
             event_bus=event_bus,
