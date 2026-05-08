@@ -1,7 +1,11 @@
 from fastapi import Request
 from fastapi.responses import JSONResponse
 
-from app.exceptions.base import BusinessRuleException, NotFoundException, UnauthorizedException
+from app.exceptions.base import (
+    BusinessRuleException,
+    NotFoundException,
+    UnauthorizedException,
+)
 
 
 async def business_exception_handler(

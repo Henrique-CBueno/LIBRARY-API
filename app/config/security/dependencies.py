@@ -1,5 +1,3 @@
-
-
 from fastapi import Depends
 from fastapi.security import HTTPAuthorizationCredentials
 from fastapi.security import HTTPBearer
@@ -15,9 +13,7 @@ security = HTTPBearer()
 
 
 async def get_current_user(
-    credentials: HTTPAuthorizationCredentials = Depends(
-        security
-    ),
+    credentials: HTTPAuthorizationCredentials = Depends(security),
     db: AsyncSession = Depends(get_db),
 ):
     token = credentials.credentials
@@ -33,13 +29,9 @@ async def get_current_user(
 
     repository = UserRepository(db)
 
-    user = await repository.find_by_id(
-        user_id
-    )
+    user = await repository.find_by_id(user_id)
 
     if not user:
-        raise NotFoundException(
-            "User not found"
-        )
+        raise NotFoundException("User not found")
 
     return user

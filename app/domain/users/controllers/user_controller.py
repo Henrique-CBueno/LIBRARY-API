@@ -3,7 +3,13 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config.security.dependencies import get_current_user
 from app.domain.users.repositories.user_repository import UserRepository
-from app.domain.users.schemas.user_schema import UserResponseSchema, CreateUserSchema, TokenResponseSchema, LoginSchema, UpdateUserSchema
+from app.domain.users.schemas.user_schema import (
+    UserResponseSchema,
+    CreateUserSchema,
+    TokenResponseSchema,
+    LoginSchema,
+    UpdateUserSchema,
+)
 from app.domain.users.services.user_service import UserService
 from app.infra.database.session import get_db
 from app.infra.padronize.pagination.schemas import PaginatedResponse
@@ -48,6 +54,7 @@ async def list_users(
         size,
     )
 
+
 @router.post(
     "/login",
     response_model=TokenResponseSchema,
@@ -64,7 +71,7 @@ async def login(
     response_model=UserResponseSchema,
 )
 async def me(
-    current_user = Depends(get_current_user),
+    current_user=Depends(get_current_user),
 ):
     return current_user
 
@@ -93,6 +100,7 @@ async def update_user(
         user_id,
         data,
     )
+
 
 @router.delete(
     "/{user_id}",

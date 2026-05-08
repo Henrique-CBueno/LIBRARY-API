@@ -15,10 +15,7 @@ class Settings(BaseSettings):
 
     ENVIRONMENT: str = "development"
 
-    model_config = SettingsConfigDict(
-        env_file=".env",
-        case_sensitive=True
-    )
+    model_config = SettingsConfigDict(env_file=".env", case_sensitive=True)
 
 
 @lru_cache

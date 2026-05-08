@@ -10,7 +10,7 @@ from app.infra.database.Base import Base
 class UserModel(Base):
     __tablename__ = "users"
 
-    id: Mapped[String] = mapped_column(
+    id: Mapped[str] = mapped_column(
         String,
         primary_key=True,
         default=lambda: str(uuid.uuid6()),

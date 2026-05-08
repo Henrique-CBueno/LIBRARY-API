@@ -44,9 +44,9 @@ class UserRepository:
         return result.scalars().all()
 
     async def list_users_paginated(
-            self,
-            page: int,
-            size: int,
+        self,
+        page: int,
+        size: int,
     ):
         offset = (page - 1) * size
 

@@ -9,9 +9,7 @@ settings = get_settings()
 def create_access_token(
     user_id: str,
 ):
-    expire = datetime.now(timezone.utc) + timedelta(
-        minutes=settings.JWT_EXPIRE_MINUTES
-    )
+    expire = datetime.now(timezone.utc) + timedelta(minutes=settings.JWT_EXPIRE_MINUTES)
 
     payload = {
         "sub": user_id,
